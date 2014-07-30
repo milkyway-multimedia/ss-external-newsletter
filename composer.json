@@ -1,0 +1,25 @@
+{
+    "name"             : "milkyway-multimedia/ss-mailchimp-sync",
+    "description"      : "Sync Silverstripe to your Mailchimp account",
+    "type"             : "silverstripe-module",
+    "keywords"         : ["silverstripe", "newsletter", "mailchimp"],
+    "license"          : "MIT",
+    "authors"          : [
+        {
+            "name" : "Mellisa Hankins",
+            "email": "mell@milkywaymultimedia.com.au"
+        }
+    ],
+    "require"          : {
+        "silverstripe/framework"           : "~3.1",
+        "milkyway-multimedia/ss-mwm-autocomplete"           : "dev-master",
+        "guzzlehttp/guzzle"                : "~4"
+    },
+    "config"           : {
+        "process-timeout": 600
+    },
+    "minimum-stability": "dev",
+    "extra"            : {
+        "installer-name": "mailchimp-sync"
+    }
+}
