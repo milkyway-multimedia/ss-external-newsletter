@@ -1,4 +1,5 @@
 <?php
+use Milkyway\SS\MailchimpSync\Utilities;
 
 /**
  * Milkyway Multimedia
@@ -39,9 +40,39 @@ class MailchimpCampaign extends DataObject
     ];
 
     protected $handler = 'Milkyway\SS\MailchimpSync\Handlers\Campaign';
+    protected $listsHandler = 'Milkyway\SS\MailchimpSync\Handlers\Lists';
 
     public function getTitle() {
         return $this->Subject;
+    }
+
+    public function getCMSFields() {
+        $this->beforeExtending('updateCMSFields', function($fields) {
+                if(!$this->MailchimpID)
+                    $fields->removeByName('MailchimpID');
+
+                if(!$this->MailchimpWebID)
+                    $fields->removeByName('MailchimpWebID');
+
+                if(!$this->Status)
+                    $fields->removeByName('Status');
+
+                if(!$this->NumberSent)
+                    $fields->removeByName('NumberSent');
+
+                $fields->removeByName('Template');
+
+                $fields->insertBefore($lists = Select2Field::create('ListsID', 'List (you can add more lists after you save for the first time)', '',
+                        \Injector::inst()->createWithArgs($this->listsHandler, [Utilities::env_value('Mailchimp_APIKey', $this)])->get(), null, 'name', 'id'
+                    ), 'Content');
+
+                $lists->requireSelection = true;
+                $lists->minSearchLength = 0;
+            }
+        );
+
+        $fields = parent::getCMSFields();
+        return $fields;
     }
 
     public function onBeforeWrite() {
@@ -85,7 +116,7 @@ class MailchimpCampaign extends DataObject
     }
 
     public function getPostVars() {
-        $vars['type'] = $this->Type;
+        $vars['type'] = 'regular';
 
         $vars['options']['subject'] = $this->Subject;
 
@@ -97,6 +128,9 @@ class MailchimpCampaign extends DataObject
         $vars['options']['generate_text'] = true;
 
         $vars['content']['html'] = $this->Content;
+
+        if($this->ListsID)
+            $vars['options']['list_id'] = $this->ListsID;
 
         $this->extend('updatePostVars', $vars);
 

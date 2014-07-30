@@ -13,7 +13,7 @@ namespace Milkyway\SS\MailchimpSync\Handlers;
 use Milkyway\SS\MailchimpSync\Handlers\Model\HTTP;
 
 class Campaign extends HTTP {
-    public function create($args = [], $params = []) {
+    public function create($params = []) {
         return $this->results($this->endpoint('campaigns/create.json'), $params);
     }
 
