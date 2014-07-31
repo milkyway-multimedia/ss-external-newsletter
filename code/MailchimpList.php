@@ -24,14 +24,33 @@ class MailchimpList extends DataObject
 
     public function getCMSFields() {
         $this->beforeExtending('updateCMSFields', function($fields) {
-                $fields->addFieldsToTab('Root.AllEmails', [
-                        FormMessageField::create('NOTE-AllEmails', 'This is a list of all emails subscribed to this mailing list')
-                    ]
-                );
+                if($this->MailchimpID) {
+                    $fields->addFieldsToTab(
+                        'Root.AllEmails',
+                        [
+                            FormMessageField::create(
+                                'NOTE-AllEmails',
+                                'This is a list of all emails subscribed to this mailing list'
+                            ),
+                            GridField::create('AllEmails', 'Emails', $this->AllEmails(),
+                                GridFieldConfig_RecordEditor::create(50)
+                                    ->removeComponentsByType('GridFieldFilterHeader')
+                                    ->removeComponentsByType('GridFieldDetailForm')
+                                    ->removeComponentsByType('GridFieldDeleteAction')
+                                    ->addComponents(new ExternalDataGridFieldDetailForm())
+                                    ->addComponents(new ExternalDataGridFieldDeleteAction())
+                            )
+                        ]
+                    );
+                }
             }
         );
 
         $fields = parent::getCMSFields();
         return $fields;
+    }
+
+    public function AllEmails() {
+        return singleton('Milkyway\SS\MailchimpSync\External\Subscriber')->fromList($this->MailchimpID);
     }
 } 

@@ -14,7 +14,7 @@ use GuzzleHttp\Message\ResponseInterface;
 abstract class HTTP {
     const API_VERSION = '2.0';
 
-    protected $endpoint = 'https://{region}.api.mailchimp.com/';
+    protected $endpoint = 'https://<dc>.api.mailchimp.com/';
     protected $apiKey;
 
     protected $cacheLifetime = 0;
@@ -26,6 +26,10 @@ abstract class HTTP {
     public function __construct($apiKey, $cache = 0) {
         $this->apiKey = $apiKey;
         $this->cacheLifetime = $cache;
+    }
+
+    public function cleanCache() {
+        // $this->cache()->clean();
     }
 
     /**
@@ -104,14 +108,14 @@ abstract class HTTP {
         return true;
     }
 
-    protected function endpoint($action = '', $region = '')
+    protected function endpoint($action = '', $dataCentre = '')
     {
-        if(!$region && $this->apiKey) {
+        if(!$dataCentre && $this->apiKey) {
             $parts = explode('-', $this->apiKey);
-            $region = array_pop($parts);
+            $dataCentre = array_pop($parts);
         }
 
-        return str_replace('{region}', $region, \Controller::join_links($this->endpoint, static::API_VERSION, $action));
+        return str_replace('<dc>', $dataCentre, \Controller::join_links($this->endpoint, static::API_VERSION, $action));
     }
 
     protected function params() {

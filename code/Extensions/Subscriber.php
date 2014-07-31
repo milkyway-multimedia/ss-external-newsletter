@@ -20,6 +20,8 @@ class Subscriber extends \DataExtension {
 
     protected $emailField = 'Email';
 
+    protected $handler = 'Milkyway\SS\MailchimpSync\Handlers\Subscriber';
+
     public function __construct($type = '', $emailField = 'Email')
     {
         parent::__construct();
@@ -37,6 +39,10 @@ class Subscriber extends \DataExtension {
         return null;
     }
 
+    public function updateCMSFields(FieldList $fields) {
+        $fields->removeByName('EUID');
+    }
+
     public function onBeforeWrite() {
         if(!Utilities::env_value('Mailchimp_Subscribe_OnWrite', $this->owner))
             return;
@@ -51,15 +57,41 @@ class Subscriber extends \DataExtension {
         $this->owner->unsubscribe();
     }
 
-    public function subscribe() {
-        if($this->owner->{$this->emailField} && $this->owner->MailchimpListID) {
-            $email = \Injector::inst()->createWithArgs('Milkyway\SS\MailchimpSync\Handlers\Subscriber', [Utilities::env_value('Mailchimp_APIKey', $this->owner)])->subscribe(
-                [
+    public function fromList($listId) {
+        $list = \ExternalDataList::create();
+        $list->dataClass = get_class($this->owner);
+
+        $result = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', singleton('Milkyway\SS\MailchimpSync\External\Subscriber')), 1])->get($listId);
+
+        foreach($result as $item) {
+            $record = \Object::create($list->dataClass, $item);
+
+            if(isset($item['merges']) && $record->MailchimpMergeVars) {
+                foreach($record->MailchimpMergeVars as $db => $var) {
+                    if(isset($item['merges'][$var]))
+                        $record->$db = $item['merges'][$var];
+                }
+            }
+
+            $record->MailchimpListID = $listId;
+            $record->Email = $record->email;
+            $record->ID = $record->euid;
+
+            $list->push($record);
+        }
+
+        return $list;
+    }
+
+    public function subscribe($params = []) {
+        if($this->owner->{$this->emailField} && ($this->owner->SubcriberListID || $this->owner->MailchimpListID)) {
+            $email = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', $this->owner)])->subscribe(
+                array_merge([
                     'email' => $this->owner->{$this->emailField},
-                    'list' => $this->owner->MailchimpListID,
+                    'list' => $this->owner->SubcriberListID ? $this->owner->SubcriberListID : $this->owner->MailchimpListID,
                     'groups' => $this->owner->MailchimpInterestGroups,
                     'double_optin' => Utilities::env_value('Mailchimp_DoubleOptIn', $this->owner),
-                ], $this->owner->MailchimpListParams
+                ], $params), $this->owner->MailchimpListParams
             );
 
             if(isset($email['euid']))
@@ -70,13 +102,13 @@ class Subscriber extends \DataExtension {
         }
     }
 
-    public function unsubscribe() {
-        if($this->owner->{$this->emailField} && $this->owner->MailchimpListID) {
-            \Injector::inst()->createWithArgs('Milkyway\SS\MailchimpSync\Handlers\Subscriber', [Utilities::env_value('Mailchimp_APIKey', $this->owner)])->unsubscribe(
-                [
+    public function unsubscribe($params = []) {
+        if($this->owner->{$this->emailField} && ($this->owner->SubcriberListID || $this->owner->MailchimpListID)) {
+            \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', $this->owner)])->unsubscribe(
+                array_merge([
                     'email' => $this->owner->{$this->emailField},
-                    'list' => $this->owner->MailchimpListID,
-                ]
+                    'list' => $this->owner->SubcriberListID ? $this->owner->SubcriberListID : $this->owner->MailchimpListID,
+                ], $params)
             );
         }
     }
@@ -115,7 +147,8 @@ class Subscriber extends \DataExtension {
                     $list->write();
                 }
 
-                $this->owner->Lists()->add($list, ['Subscribed' => \SS_Datetime::now()->Rfc2822(), 'LEID' => $leid]);
+                if($this->owner instanceof \DataObject)
+                    $this->owner->Lists()->add($list, ['Subscribed' => \SS_Datetime::now()->Rfc2822(), 'LEID' => $leid]);
             }
         }
     }

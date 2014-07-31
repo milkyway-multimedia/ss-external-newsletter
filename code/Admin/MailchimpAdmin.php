@@ -16,6 +16,7 @@ class MailchimpAdmin extends ModelAdmin {
 
     private static $managed_models = array(
         'MailchimpCampaign',
+        'MailchimpList',
     );
 
     public function alternateAccessCheck() {

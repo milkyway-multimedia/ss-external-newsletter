@@ -30,6 +30,10 @@ class MailchimpCampaign extends DataObject
         'Scheduled' => 'MailchimpCampaign_Scheduled',
     ];
 
+    private static $summary_fields = [
+        'Title',
+    ];
+
     public function getTitle() {
         return $this->Subject;
     }
@@ -66,6 +70,12 @@ class MailchimpCampaign_SendLog extends DataObject {
         'Campaign' => 'MailchimpCampaign',
         'Author' => 'Member',
         'List' => 'MailchimpList',
+    ];
+
+    private static $summary_fields = [
+        'Title',
+        'Sent',
+        'NumberSent',
     ];
 
     public function getTitle() {
@@ -267,6 +277,10 @@ class MailchimpCampaign_Scheduled extends DataObject {
     private static $db = [
         'Scheduled' => 'Datetime',
         'Done' => 'Boolean',
+    ];
+
+    private static $summary_fields = [
+        'Scheduled',
     ];
 
     private static $has_one = [

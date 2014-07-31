@@ -1,0 +1,6 @@
+---
+Name: mailchimp-sync
+---
+ExternalDataObject:
+  extensions:
+    - BetterButtonDataObject

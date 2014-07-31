@@ -14,15 +14,21 @@ use Milkyway\SS\MailchimpSync\Handlers\Model\HTTP;
 
 class Campaign extends HTTP {
     public function create($params = []) {
-        return $this->results($this->endpoint('campaigns/create.json'), $params);
+        $results = $this->results($this->endpoint('campaigns/create.json'), $params);
+        $this->cleanCache();
+        return $results;
     }
 
     public function update($params = []) {
-        return $this->results($this->endpoint('campaigns/update.json'), $params);
+        $results = $this->results($this->endpoint('campaigns/update.json'), $params);
+        $this->cleanCache();
+        return $results;
     }
 
     public function delete($params = []) {
-        return $this->results($this->endpoint('campaigns/delete.json'), $params);
+        $results = $this->results($this->endpoint('campaigns/delete.json'), $params);
+        $this->cleanCache();
+        return $results;
     }
 
     public function send($args = [], $params = []) {
@@ -37,6 +43,8 @@ class Campaign extends HTTP {
         if(isset($args['email']) && !is_array($args['email']))
             $params['test_emails'] = [$args['email']];
 
-        return $this->results($this->endpoint('campaigns/send-test.json'), $params);
+        $results = $this->results($this->endpoint('campaigns/send-test.json'), $params);
+        $this->cleanCache();
+        return $results;
     }
 } 

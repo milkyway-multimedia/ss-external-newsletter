@@ -11,6 +11,38 @@ use Milkyway\SS\MailchimpSync\Handlers\Model\HTTP;
  */
 
 class Subscriber extends HTTP {
+    public function get($listId, $status = 'subscribed', $opts = [], $params = []) {
+        $params['id'] = $listId;
+        $params['status'] = $status;
+
+        if(count($opts))
+            $params['opts'] = $opts;
+
+        $response = $this->results($this->endpoint('lists/members.json'), $params);
+
+        if(isset($response['data']))
+            return $response['data'];
+
+        return [];
+    }
+
+    public function one($euid, $listId, $status = 'subscribed', $opts = [], $params = []) {
+        $all = $this->get($listId, $status, $opts, $params);
+
+        if(count($all)) {
+            foreach($all as $one) {
+                foreach (new RecursiveIteratorIterator(new RecursiveArrayIterator($one)) as $key => $value) {
+                    if ($euid === $value)
+                        return $one;
+                }
+
+                return null;
+            }
+        }
+
+        return null;
+    }
+
     public function subscribe($args = [], $params = []) {
         if(isset($args['email']) && !is_array($args['email'])) {
             $params['email'] = ['email' => $args['email']];
@@ -56,7 +88,9 @@ class Subscriber extends HTTP {
                       'replace_interests' => !isset($args['do_not_replace_interests']),
                   ], $params);
 
-        return $this->results($this->endpoint('lists/subscribe.json'), $params);
+        $results = $this->results($this->endpoint('lists/subscribe.json'), $params);
+        $this->cleanCache();
+        return $results;
     }
 
     public function unsubscribe($args = [], $params = []) {
@@ -70,6 +104,8 @@ class Subscriber extends HTTP {
                       'send_notify' => !isset($args['no_notifications']),
                   ] + $params;
 
-        return $this->results($this->endpoint('lists/subscribe.json'), $params);
+        $results = $this->results($this->endpoint('lists/unsubscribe.json'), $params);
+        $this->cleanCache();
+        return $results;
     }
 }
