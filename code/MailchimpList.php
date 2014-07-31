@@ -18,8 +18,20 @@ class MailchimpList extends DataObject
         'MailchimpID' => true,
     );
 
-    private static $many_many = [
-        'Campaigns' => 'MailchimpCampaign',
-        'Sent' => 'MailchimpCampaign_SendLog',
+    private static $has_many = [
+        'Received' => 'MailchimpCampaign_SendLog',
     ];
+
+    public function getCMSFields() {
+        $this->beforeExtending('updateCMSFields', function($fields) {
+                $fields->addFieldsToTab('Root.AllEmails', [
+                        FormMessageField::create('NOTE-AllEmails', 'This is a list of all emails subscribed to this mailing list')
+                    ]
+                );
+            }
+        );
+
+        $fields = parent::getCMSFields();
+        return $fields;
+    }
 } 

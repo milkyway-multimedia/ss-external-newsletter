@@ -17,6 +17,14 @@ class Campaign extends HTTP {
         return $this->results($this->endpoint('campaigns/create.json'), $params);
     }
 
+    public function update($params = []) {
+        return $this->results($this->endpoint('campaigns/update.json'), $params);
+    }
+
+    public function delete($params = []) {
+        return $this->results($this->endpoint('campaigns/delete.json'), $params);
+    }
+
     public function send($args = [], $params = []) {
 
     }

@@ -1,6 +1,7 @@
 <?php namespace Milkyway\SS\MailchimpSync\Handlers\Model;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Message\ResponseInterface;
 
 /**
@@ -69,10 +70,16 @@ abstract class HTTP {
             if($this->method != 'get')
                 $params = ['body' => $params];
 
-            $response = $this->http()->{$this->method}(
-                $url,
-                $params
-            );
+            try {
+                $response = $this->http()->{$this->method}(
+                    $url,
+                    $params
+                );
+            } catch(RequestException $e) {
+                if(($response = $e->getResponse()) && $body = $this->parseResponse($response)) {
+                    throw new HTTP_Exception($response, isset($body['name']) ? $body['name'] : '', isset($body['code']) ? $body['code'] : 400);
+                }
+            }
 
             if(!$this->isError($response)) {
                 $body = $this->parseResponse($response);
@@ -117,8 +124,8 @@ abstract class HTTP {
 class HTTP_Exception extends \Exception {
     public $response;
 
-    public function __construct($response = null, $message = null, $statusCode = null, $statusDescription = null) {
-        parent::__construct($message, $statusCode, $statusDescription);
+    public function __construct($response = null, $message = null, $statusCode = null) {
+        parent::__construct($message, $statusCode);
         $this->response = $response;
     }
 }
