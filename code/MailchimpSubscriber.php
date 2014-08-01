@@ -7,7 +7,7 @@
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
 
-class MailchimpSubscriber extends DataObject
+class McSubscriber extends DataObject
 {
     private static $db = [
         'FirstName'       => 'Varchar',

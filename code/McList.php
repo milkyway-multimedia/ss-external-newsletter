@@ -7,8 +7,10 @@
  * @package reggardocolaianni.com
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
-class MailchimpList extends DataObject
+class McList extends DataObject
 {
+    private static $singular_name = 'Mailing List';
+
     private static $db = [
         'Title'       => 'Varchar',
         'MailchimpID' => 'Varchar',
@@ -19,7 +21,7 @@ class MailchimpList extends DataObject
     );
 
     private static $has_many = [
-        'Received' => 'MailchimpCampaign_SendLog',
+        'Received' => 'McCampaign_SendLog',
     ];
 
     public function getCMSFields() {

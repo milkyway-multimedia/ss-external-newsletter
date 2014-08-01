@@ -8,7 +8,7 @@ class Subscriber extends \DataExtension {
     ];
 
     private static $many_many = [
-        'Lists' => 'MailchimpList',
+        'Lists' => 'McList',
     ];
 
     private static $many_many_extraFields = [
@@ -31,7 +31,7 @@ class Subscriber extends \DataExtension {
     public static function get_extra_config($class, $extension, $args) {
         $type = isset($args[0]) ? $args[0] : $class;
 
-        \Config::inst()->update('MailchimpList', 'belongs_many_many', [
+        \Config::inst()->update('McList', 'belongs_many_many', [
                 $type => $class,
             ]
         );

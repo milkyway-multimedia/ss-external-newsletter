@@ -15,8 +15,8 @@ class MailchimpAdmin extends ModelAdmin {
     public $showImportForm = false;
 
     private static $managed_models = array(
-        'MailchimpCampaign',
-        'MailchimpList',
+        'McCampaign',
+        'McList',
     );
 
     public function alternateAccessCheck() {
