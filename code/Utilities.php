@@ -26,6 +26,10 @@ class Utilities {
         'Mailchimp_Unsubscribe_OnDelete' => 'mailchimp_unsubscribe_on_delete',
     ];
 
+    public static function config() {
+        return \Config::inst()->forClass('Mailchimp');
+    }
+
     public static function env_value($setting, \ViewableData $object = null) {
         if($object && $object->$setting)
             return $object->$setting;
@@ -42,8 +46,11 @@ class Utilities {
             if($object && $object->config()->$setting)
                 $value = $object->config()->$setting;
 
-            if (!$value)
-                $value = \MailchimpCampaign::config()->$setting;
+            if (!$value) {
+                $pos = strpos($setting,'mailchimp_');
+                $simpleSetting = ($pos === 0) ? substr_replace($setting,'',0,strlen($setting)) : $setting;
+                $value = static::config()->$simpleSetting;
+            }
 
             if (!$value && \ClassInfo::exists('SiteConfig')) {
                 if (\SiteConfig::current_site_config()->$dbSetting) {

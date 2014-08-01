@@ -9,9 +9,6 @@
 
 namespace Milkyway\SS\MailchimpSync\External;
 
-
-use Milkyway\SS\MailchimpSync\Utilities;
-
 class Subscriber extends \ExternalDataObject {
     private static $singular_name = 'Email';
 
@@ -53,11 +50,11 @@ class Subscriber extends \ExternalDataObject {
         if(!$this->ID)
             $params['double_optin'] = $this->DoubleOptIn;
 
-        $this->subscribe($params);
+        $this->subscribeToMailchimp($params);
     }
 
     public function delete() {
-        $this->unsubscribe();
+        $this->unsubscribeFromMailchimp();
     }
 
     public function getName() {

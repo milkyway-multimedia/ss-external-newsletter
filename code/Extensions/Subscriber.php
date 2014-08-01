@@ -4,7 +4,7 @@ use Milkyway\SS\MailchimpSync\Utilities;
 
 class Subscriber extends \DataExtension {
     private static $db = [
-        'EUID' => 'Varchar',
+        'EUId' => 'Varchar',
     ];
 
     private static $many_many = [
@@ -14,7 +14,7 @@ class Subscriber extends \DataExtension {
     private static $many_many_extraFields = [
         'Lists' => [
             'Subscribed' => 'Datetime',
-            'LEID' => 'Varchar',
+            'LEId' => 'Varchar',
         ],
     ];
 
@@ -40,7 +40,7 @@ class Subscriber extends \DataExtension {
     }
 
     public function updateCMSFields(FieldList $fields) {
-        $fields->removeByName('EUID');
+        $fields->removeByName('EUId');
     }
 
     public function onBeforeWrite() {
@@ -57,11 +57,11 @@ class Subscriber extends \DataExtension {
         $this->owner->unsubscribe();
     }
 
-    public function fromList($listId) {
+    public function fromMailchimpList($listId) {
         $list = \ExternalDataList::create();
         $list->dataClass = get_class($this->owner);
 
-        $result = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', singleton('Milkyway\SS\MailchimpSync\External\Subscriber')), 1])->get($listId);
+        $result = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', $this->owner), 1])->get($listId);
 
         foreach($result as $item) {
             $record = \Object::create($list->dataClass, $item);
@@ -83,7 +83,7 @@ class Subscriber extends \DataExtension {
         return $list;
     }
 
-    public function subscribe($params = []) {
+    public function subscribeToMailchimp($params = []) {
         if($this->owner->{$this->emailField} && ($this->owner->SubcriberListID || $this->owner->MailchimpListID)) {
             $email = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', $this->owner)])->subscribe(
                 array_merge([
@@ -95,14 +95,14 @@ class Subscriber extends \DataExtension {
             );
 
             if(isset($email['euid']))
-                $this->owner->EUID = $email['euid'];
+                $this->owner->EUId = $email['euid'];
 
             $leid = isset($email['leid']) ? $email['leid'] : '';
-            $this->owner->addToLists($leid);
+            $this->owner->addToMailchimpLists($leid);
         }
     }
 
-    public function unsubscribe($params = []) {
+    public function unsubscribeFromMailchimp($params = []) {
         if($this->owner->{$this->emailField} && ($this->owner->SubcriberListID || $this->owner->MailchimpListID)) {
             \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', $this->owner)])->unsubscribe(
                 array_merge([
@@ -110,6 +110,8 @@ class Subscriber extends \DataExtension {
                     'list' => $this->owner->SubcriberListID ? $this->owner->SubcriberListID : $this->owner->MailchimpListID,
                 ], $params)
             );
+
+            $this->owner->removeFromMailchimpLists();
         }
     }
 
@@ -132,23 +134,28 @@ class Subscriber extends \DataExtension {
         return Utilities::env_value('Mailchimp_DefaultGroups', $this->owner);
     }
 
-    public function addToLists($leid = '') {
+    public function addToMailchimpLists($leid = '') {
         if($listId = $this->owner->MailchimpListID) {
-            if((strpos($listId, ',') !== false) || is_array($listId)) {
-                $listsIds = is_array($listId) ? $listId : explode(',', $listId);
-            }
-            else
-                $listsIds = [$listId];
+            $listsIds = $this->convertListIdsToMany($listId);
 
             foreach($listsIds as $listId) {
-                if(!($list = \MailchimpList::get()->filter('MailchimpID', $listId)->first())) {
-                    $list = \MailchimpList::create();
-                    $list->MailchimpID = $listId;
-                    $list->write();
-                }
+                $list = \McList::find_or_make(['McId' => $listId]);
 
                 if($this->owner instanceof \DataObject)
-                    $this->owner->Lists()->add($list, ['Subscribed' => \SS_Datetime::now()->Rfc2822(), 'LEID' => $leid]);
+                    $this->owner->Lists()->add($list, ['Subscribed' => \SS_Datetime::now()->Rfc2822(), 'LEId' => $leid]);
+            }
+        }
+    }
+
+    public function removeFromMailchimpLists() {
+        if($listId = $this->owner->MailchimpListID) {
+            $listsIds = $this->convertListIdsToMany($listId);
+
+            foreach($listsIds as $listId) {
+                $list = \McList::find_or_make(['McId' => $listId]);
+
+                if($this->owner instanceof \DataObject)
+                    $this->owner->Lists()->remove($list);
             }
         }
     }
@@ -163,5 +170,22 @@ class Subscriber extends \DataExtension {
         }
 
         return $vars;
+    }
+
+    /**
+     * @param $listId
+     *
+     * @return array
+     */
+    protected function convertListIdsToMany($listId)
+    {
+        if ((strpos($listId, ',') !== false) || is_array($listId)) {
+            $listsIds = is_array($listId) ? $listId : explode(',', $listId);
+            return $listsIds;
+        } else
+            $listsIds = [$listId];
+        {
+            return $listsIds;
+        }
     }
 }

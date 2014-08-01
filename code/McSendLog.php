@@ -1,75 +1,30 @@
 <?php
-use Milkyway\SS\MailchimpSync\Handlers\Model\HTTP_Exception;
-use Milkyway\SS\MailchimpSync\Utilities;
-
 /**
  * Milkyway Multimedia
- * MailchimpCampaign.php
+ * McSendLog.php
  *
  * @package reggardocolaianni.com
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
-class MailchimpCampaign extends DataObject
-{
-    private static $singular_name = 'Regular Campaign';
 
-    private static $description = 'Send a HTML Newsletter';
-
-    private static $db = [
-        'Subject' => 'Varchar',
-        'From' => 'Varchar',
-        'FromName' => 'Varchar',
-
-        'Content' => 'HTMLText',
-
-        'Template' => 'Varchar',
-    ];
-
-    private static $has_many = [
-        'Sent' => 'MailchimpCampaign_SendLog',
-        'Scheduled' => 'MailchimpCampaign_Scheduled',
-    ];
-
-    private static $summary_fields = [
-        'Title',
-    ];
-
-    public function getTitle() {
-        return $this->Subject;
-    }
-
-    public function getCMSFields() {
-        $this->beforeExtending('updateCMSFields', function($fields) {
-                $fields->removeByName('Template');
-
-                if(!$this->exists())
-                    $fields->insertBefore(FormMessageField::create('NOTE-UNSAVED', 'You can start sending this campaign and testing it once it has been saved'), 'Subject');
-            }
-        );
-
-        $fields = parent::getCMSFields();
-        return $fields;
-    }
-}
-
-class MailchimpCampaign_SendLog extends DataObject {
-    private static $singular_name = 'Campaign Sent Item';
+class McSendLog extends DataObject {
+    private static $singular_name = 'Send a campaign action';
 
     private static $description = 'This is a log for sending a campaign. You can send the same campaign to many different lists etc.';
 
     private static $db = [
         'Status' => "Enum('save,paused,scheduled,sending,sent')",
-        'MailchimpID' => 'Varchar',
-        'MailchimpWebID' => 'Varchar',
+        'McId' => 'Varchar',
+        'McWebId' => 'Varchar',
 
         'Sent' => 'Datetime',
         'NumberSent' => 'Int',
     ];
 
     private static $has_one = [
-        'Campaign' => 'MailchimpCampaign',
+        'Campaign' => 'McCampaign',
         'Author' => 'Member',
-        'List' => 'MailchimpList',
+        'List' => 'McList',
     ];
 
     private static $summary_fields = [
@@ -90,11 +45,11 @@ class MailchimpCampaign_SendLog extends DataObject {
 
     public function getCMSFields() {
         $this->beforeExtending('updateCMSFields', function($fields) {
-                if(!$this->MailchimpID)
-                    $fields->removeByName('MailchimpID');
+                if(!$this->McId)
+                    $fields->removeByName('McId');
 
-                if(!$this->MailchimpWebID)
-                    $fields->removeByName('MailchimpWebID');
+                if(!$this->McWebId)
+                    $fields->removeByName('McWebId');
 
                 if(!$this->Status)
                     $fields->removeByName('Status');
@@ -184,30 +139,32 @@ class MailchimpCampaign_SendLog extends DataObject {
     }
 
     protected function syncCreate() {
-        if(!$this->MailchimpID) {
+        if(!$this->McId) {
             $campaign = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', $this)])->create(
                 $this->getPostVars()
             );
 
             if(isset($campaign['id']))
-                $this->MailchimpID = $campaign['id'];
+                $this->McId = $campaign['id'];
             elseif(isset($campaign['web_id']))
-                $this->MailchimpWebID = $campaign['web_id'];
+                $this->McWebId = $campaign['web_id'];
+
+            $this->write();
         }
     }
 
     protected function syncDelete() {
-        if($this->MailchimpID) {
+        if($this->McId) {
             \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', $this)])->delete(
                 [
-                    'cid'   => $this->MailchimpID,
+                    'cid'   => $this->McId,
                 ]
             );
         }
     }
 
     protected function syncUpdate() {
-        if($this->MailchimpID && !$this->updated) {
+        if($this->McId && !$this->updated) {
             $vars = $this->getPostVars();
 
             foreach($vars as $type => $var) {
@@ -221,7 +178,7 @@ class MailchimpCampaign_SendLog extends DataObject {
                         [Utilities::env_value('Mailchimp_APIKey', $this)]
                     )->update(
                         [
-                            'cid'   => $this->MailchimpID,
+                            'cid'   => $this->McId,
                             'name'  => $type,
                             'value' => $var,
                         ]
@@ -229,8 +186,8 @@ class MailchimpCampaign_SendLog extends DataObject {
                 } catch(HTTP_Exception $e) {
                     if(!$this->attemptFix && $e->getMessage() == 'Campaign_DoesNotExist') {
                         $this->attemptFix = true;
-                        $this->MailchimpID = null;
-                        $this->write();
+                        $this->McId = null;
+                        $this->syncCreate();
                     }
                 }
 
@@ -254,10 +211,10 @@ class MailchimpCampaign_SendLog extends DataObject {
             $listName = '';
         }
 
-        if(!($list = \MailchimpList::get()->filter('MailchimpID', $listId)->first())) {
-            $list = \MailchimpList::create();
+        if(!($list = \McList::get()->filter('McId', $listId)->first())) {
+            $list = \McList::create();
             $list->Title = $listName;
-            $list->MailchimpID = $listId;
+            $list->McId = $listId;
             $list->write();
         }
 
@@ -265,27 +222,6 @@ class MailchimpCampaign_SendLog extends DataObject {
     }
 
     public function getMailingListID() {
-        return $this->List()->MailchimpID . '|' . $this->List()->Title;
+        return $this->List()->McId . '|' . $this->List()->Title;
     }
-}
-
-class MailchimpCampaign_Scheduled extends DataObject {
-    private static $singular_name = 'Scheduled Campaign Notice';
-
-    private static $description = 'You can schedule a campaign to send at a specific time';
-
-    private static $db = [
-        'Scheduled' => 'Datetime',
-        'Done' => 'Boolean',
-    ];
-
-    private static $summary_fields = [
-        'Scheduled',
-    ];
-
-    private static $has_one = [
-        'Campaign' => 'MailchimpCampaign',
-        'Log' => 'MailchimpCampaign_SendLog',
-        'Author' => 'Member',
-    ];
 }

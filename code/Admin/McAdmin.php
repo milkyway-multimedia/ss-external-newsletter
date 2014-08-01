@@ -7,9 +7,9 @@
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
 
-class MailchimpAdmin extends ModelAdmin {
-    private static $menu_title = "Newsletter";
-    private static $url_segment = "newsletters";
+class McAdmin extends ModelAdmin {
+    private static $menu_title = "Email Campaigns";
+    private static $url_segment = "email-campaigns";
     private static $menu_priority = 1;
 
     public $showImportForm = false;

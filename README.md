@@ -21,8 +21,8 @@ Don't forget to set your api key as well.
 
 ```
 
-    MailchimpCampaign:
-      mailchimp_api_key: ''
+    Mailchimp:
+      api_key: ''
 
 ```
 
