@@ -85,7 +85,7 @@ abstract class HTTP {
                 }
             }
 
-            if(!$this->isError($response)) {
+            if($response && !$this->isError($response)) {
                 $body = $this->parseResponse($response);
 
                 if(!$this->isValid($body))
