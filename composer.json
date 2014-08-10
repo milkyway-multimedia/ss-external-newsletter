@@ -1,6 +1,6 @@
 {
-	"name"             : "milkyway-multimedia/ss-mailchimp-sync",
-	"description"      : "Sync Silverstripe to your Mailchimp account",
+	"name"             : "milkyway-multimedia/ss-external-newsletter",
+	"description"      : "Sync Silverstripe to your Mailchimp/Campaign Monitor account",
 	"type"             : "silverstripe-module",
 	"keywords"         : [
 		"silverstripe",
@@ -26,6 +26,6 @@
 	},
 	"minimum-stability": "dev",
 	"extra"            : {
-		"installer-name": "mailchimp-sync"
+		"installer-name": "external-newsletter"
 	}
 }
