@@ -1,6 +1,6 @@
-<?php namespace Milkyway\SS\MailchimpSync\Extensions;
+<?php namespace Milkyway\SS\ExternalNewsletter\Extensions;
 
-use Milkyway\SS\MailchimpSync\Utilities;
+use Milkyway\SS\ExternalNewsletter\Utilities;
 
 class Subscriber extends \DataExtension {
     private static $db = [
@@ -8,7 +8,7 @@ class Subscriber extends \DataExtension {
     ];
 
     private static $many_many = [
-        'Lists' => 'McList',
+        'Lists' => 'ExtList',
     ];
 
     private static $many_many_extraFields = [
@@ -20,7 +20,8 @@ class Subscriber extends \DataExtension {
 
     protected $emailField = 'Email';
 
-    protected $handler = 'Milkyway\SS\MailchimpSync\Handlers\Subscriber';
+    protected $handler = 'Milkyway\SS\ExternalNewsletter\Contracts\Subscriber';
+    protected $manager = 'Milkyway\SS\ExternalNewsletter\Contracts\SubscriberManager';
 
     public function __construct($type = '', $emailField = 'Email')
     {
@@ -31,7 +32,7 @@ class Subscriber extends \DataExtension {
     public static function get_extra_config($class, $extension, $args) {
         $type = isset($args[0]) ? $args[0] : $class;
 
-        \Config::inst()->update('McList', 'belongs_many_many', [
+        \Config::inst()->update('ExtList', 'belongs_many_many', [
                 $type => $class,
             ]
         );
@@ -39,43 +40,36 @@ class Subscriber extends \DataExtension {
         return null;
     }
 
-    public function updateCMSFields(FieldList $fields) {
+    public function updateCMSFields(\FieldList $fields) {
         $fields->removeByName('EUId');
     }
 
     public function onBeforeWrite() {
-        if(!Utilities::env_value('Mailchimp_Subscribe_OnWrite', $this->owner))
+        if(!Utilities::env_value('Subscribe_OnWrite', $this->owner))
             return;
 
         $this->owner->subscribe();
     }
 
     public function onBeforeDelete() {
-        if(!Utilities::env_value('Mailchimp_Unsubscribe_OnDelete', $this->owner))
+        if(!Utilities::env_value('Unsubscribe_OnDelete', $this->owner))
             return;
 
         $this->owner->unsubscribe();
     }
 
-    public function fromMailchimpList($listId) {
+    public function fromExternalList($listId) {
         $list = \ExternalDataList::create();
-        $list->dataClass = get_class($this->owner);
+        $class = get_class($this->owner);
 
-        $result = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', $this->owner), 1])->get($listId);
+        $result = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner)])->get($listId);
 
         foreach($result as $item) {
-            $record = \Object::create($list->dataClass, $item);
+            $record = \Object::create($class, $item);
 
-            if(isset($item['merges']) && $record->MailchimpMergeVars) {
-                foreach($record->MailchimpMergeVars as $db => $var) {
-                    if(isset($item['merges'][$var]))
-                        $record->$db = $item['merges'][$var];
-                }
-            }
+	        \Injector::inst()->get($this->manager)->applyExternalVars($record, $item);
 
-            $record->MailchimpListID = $listId;
-            $record->Email = $record->email;
-            $record->ID = $record->euid;
+            $record->ExtListId = $listId;
 
             $list->push($record);
         }
@@ -83,40 +77,40 @@ class Subscriber extends \DataExtension {
         return $list;
     }
 
-    public function subscribeToMailchimp($params = []) {
-        if($this->owner->{$this->emailField} && ($this->owner->SubcriberListID || $this->owner->MailchimpListID)) {
-            $email = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', $this->owner)])->subscribe(
-                array_merge([
-                    'email' => $this->owner->{$this->emailField},
-                    'list' => $this->owner->SubcriberListID ? $this->owner->SubcriberListID : $this->owner->MailchimpListID,
-                    'groups' => $this->owner->MailchimpInterestGroups,
-                    'double_optin' => Utilities::env_value('Mailchimp_DoubleOptIn', $this->owner),
-                ], $params), $this->owner->MailchimpListParams
-            );
+    public function subscribeToExternalList($params = []) {
+        if($this->owner->{$this->emailField} || isset($params['email'])) {
+	        if(!isset($params['email']))
+		        $params['email'] = $this->owner->{$this->emailField};
 
-            if(isset($email['euid']))
-                $this->owner->EUId = $email['euid'];
+            $email = \Injector::inst()->get($this->manager)->subscribe(
+	            \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner)]),
+	            $this->owner,
+	            $params
+            );
 
             $leid = isset($email['leid']) ? $email['leid'] : '';
-            $this->owner->addToMailchimpLists($leid);
+            $this->owner->addToExternalLists($leid);
         }
     }
 
-    public function unsubscribeFromMailchimp($params = []) {
-        if($this->owner->{$this->emailField} && ($this->owner->SubcriberListID || $this->owner->MailchimpListID)) {
-            \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('Mailchimp_APIKey', $this->owner)])->unsubscribe(
-                array_merge([
-                    'email' => $this->owner->{$this->emailField},
-                    'list' => $this->owner->SubcriberListID ? $this->owner->SubcriberListID : $this->owner->MailchimpListID,
-                ], $params)
-            );
+    public function unsubscribeFromExternalList($params = []) {
+	    if($this->owner->{$this->emailField} || isset($params['email'])) {
+		    if(!isset($params['email']))
+			    $params['email'] = $this->owner->{$this->emailField};
 
-            $this->owner->removeFromMailchimpLists();
-        }
+		   \Injector::inst()->get($this->manager)->unsubscribe(
+			    \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner)]),
+			    $this->owner,
+			    $params
+		    );
+
+		    $listId = isset($params['list_id']) ? $params['list_id'] : '';
+		    $this->owner->removeFromExternalLists($listId);
+	    }
     }
 
-    public function getMailchimpListID() {
-        return Utilities::env_value('Mailchimp_DefaultLists', $this->owner);
+    public function getExternalListID() {
+        return Utilities::env_value('DefaultLists', $this->owner);
     }
 
     public function getMailchimpListParams() {
@@ -127,19 +121,19 @@ class Subscriber extends \DataExtension {
         if(count($vars))
             $params['merge_vars'] = $vars;
 
-        return array_merge((array)Utilities::env_value('Mailchimp_DefaultParams', $this->owner), $params);
+        return array_merge((array)Utilities::env_value('DefaultParams', $this->owner), $params);
     }
 
     public function getMailchimpInterestGroups() {
         return Utilities::env_value('Mailchimp_DefaultGroups', $this->owner);
     }
 
-    public function addToMailchimpLists($leid = '') {
-        if($listId = $this->owner->MailchimpListID) {
+    public function addToExternalLists($leid = '') {
+        if($listId = $this->owner->ExternalListID) {
             $listsIds = $this->convertListIdsToMany($listId);
 
             foreach($listsIds as $listId) {
-                $list = \McList::find_or_make(['McId' => $listId]);
+                $list = \ExtList::find_or_make(['McId' => $listId]);
 
                 if($this->owner instanceof \DataObject)
                     $this->owner->Lists()->add($list, ['Subscribed' => \SS_Datetime::now()->Rfc2822(), 'LEId' => $leid]);
@@ -147,12 +141,12 @@ class Subscriber extends \DataExtension {
         }
     }
 
-    public function removeFromMailchimpLists() {
-        if($listId = $this->owner->MailchimpListID) {
+    public function removeFromExternalLists() {
+        if($listId = $this->owner->ExternalListID) {
             $listsIds = $this->convertListIdsToMany($listId);
 
             foreach($listsIds as $listId) {
-                $list = \McList::find_or_make(['McId' => $listId]);
+                $list = \ExtList::find_or_make(['McId' => $listId]);
 
                 if($this->owner instanceof \DataObject)
                     $this->owner->Lists()->remove($list);

@@ -1,13 +1,13 @@
 <?php
 /**
  * Milkyway Multimedia
- * McSchedule.php
+ * ExtSchedule.php
  *
  * @package reggardocolaianni.com
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
 
-class McSchedule extends DataObject {
+class ExtSchedule extends DataObject {
     private static $singular_name = 'Scheduled Date';
 
     private static $description = 'You can schedule a campaign to send at a specific time';
@@ -22,8 +22,8 @@ class McSchedule extends DataObject {
     ];
 
     private static $has_one = [
-        'Campaign' => 'McCampaign',
-        'Log' => 'McSendLog',
+        'Campaign' => 'ExtCampaign',
+        'Log' => 'ExtSendLog',
         'Author' => 'Member',
     ];
 }

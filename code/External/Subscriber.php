@@ -1,4 +1,4 @@
-<?php
+<?php namespace Milkyway\SS\ExternalNewsletter\External;
 /**
  * Milkyway Multimedia
  * Subscriber.php
@@ -7,13 +7,11 @@
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
 
-namespace Milkyway\SS\MailchimpSync\External;
-
 class Subscriber extends \ExternalDataObject {
     private static $singular_name = 'Email';
 
     private static $extensions = [
-        'Milkyway\SS\MailchimpSync\Extensions\Subscriber',
+        'Milkyway\SS\ExternalNewsletter\Extensions\Subscriber',
     ];
 
     static $db = array(
@@ -26,7 +24,7 @@ class Subscriber extends \ExternalDataObject {
         'email' => 'Email',
     ];
 
-    protected $handler = 'Milkyway\SS\MailchimpSync\Handlers\Subscriber';
+    protected $handler = 'Milkyway\SS\ExternalNewsletter\Contracts\Subscriber';
 
     public function getCMSFields() {
         $this->beforeExtending('updateCMSFields', function($fields) {
@@ -50,11 +48,11 @@ class Subscriber extends \ExternalDataObject {
         if(!$this->ID)
             $params['double_optin'] = $this->DoubleOptIn;
 
-        $this->subscribeToMailchimp($params);
+        $this->subscribeToExternalList($params);
     }
 
     public function delete() {
-        $this->unsubscribeFromMailchimp();
+        $this->unsubscribeFromExternalList();
     }
 
     public function getName() {

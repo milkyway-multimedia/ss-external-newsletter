@@ -1,6 +1,6 @@
-Mailchimp Sync
+External Newsletter
 ======
-**Mailchimp Sync** syncs your database to your Mailchimp account using the Mailchimp API.
+**External Newsletter** syncs your database to an external newsletter provider.
 
 It is very basic at the moment. **Use with caution**
 
@@ -10,7 +10,7 @@ Add the following to your composer.json file
 ```
 
     "require"          : {
-		"milkyway-multimedia/ss-mailchimp-sync": "dev-master"
+		"milkyway-multimedia/ss-external-newsletter": "dev-master"
 	}
 	
 ```
@@ -21,7 +21,7 @@ Don't forget to set your api key as well.
 
 ```
 
-    Mailchimp:
+    EmailCampaigns:
       api_key: ''
 
 ```

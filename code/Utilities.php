@@ -7,28 +7,23 @@
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
 
-namespace Milkyway\SS\MailchimpSync;
+namespace Milkyway\SS\ExternalNewsletter;
 
 
 class Utilities {
     public static $environment = [];
 
-    protected static $environment_mapping = [
-        'Mailchimp_APIKey' => 'mailchimp_api_key',
+	public static function config() {
+		return \Config::inst()->forClass('EmailCampaigns');
+	}
 
-        'Mailchimp_DoubleOptIn' => 'mailchimp_double_opt_in',
+	public static function settings() {
+		return \Injector::inst()->get('Milkyway\SS\ExternalNewsletter\Contracts\Config');
+	}
 
-        'Mailchimp_DefaultLists' => 'mailchimp_default_lists',
-        'Mailchimp_DefaultParams' => 'mailchimp_default_params',
-        'Mailchimp_DefaultGroups' => 'mailchimp_default_groups',
-
-        'Mailchimp_Subscribe_OnWrite' => 'mailchimp_subscribe_on_write',
-        'Mailchimp_Unsubscribe_OnDelete' => 'mailchimp_unsubscribe_on_delete',
-    ];
-
-    public static function config() {
-        return \Config::inst()->forClass('Mailchimp');
-    }
+	public static function using() {
+		return static::settings()->prefix();
+	}
 
     public static function env_value($setting, \ViewableData $object = null) {
         if($object && $object->$setting)
@@ -39,32 +34,36 @@ class Utilities {
 
         $value = null;
 
-        if(isset(self::$environment_mapping[$setting])) {
-            $dbSetting = $setting;
-            $setting = self::$environment_mapping[$setting];
+	    $mapping = static::settings()->map();
+	    $prefix = static::using();
 
-            if($object && $object->config()->$setting)
-                $value = $object->config()->$setting;
+        if(isset($mapping[$setting])) {
+            $dbSetting = $prefix . '_' . $setting;
+            $envSetting = strtolower($prefix) . '_' . $mapping[$setting];
+
+            if($object && $object->config()->$envSetting)
+                $value = $object->config()->$envSetting;
+
+	        if(!$value)
+		        $value = $object->config()->{$mapping[$setting]};
 
             if (!$value) {
-                $pos = strpos($setting,'mailchimp_');
-                $simpleSetting = ($pos === 0) ? substr_replace($setting,'',0,strlen($setting)) : $setting;
-                $value = static::config()->$simpleSetting;
+                $value = static::config()->$envSetting;
             }
 
             if (!$value && \ClassInfo::exists('SiteConfig')) {
                 if (\SiteConfig::current_site_config()->$dbSetting) {
                     $value = \SiteConfig::current_site_config()->$dbSetting;
-                } elseif (\SiteConfig::config()->$setting) {
-                    $value = \SiteConfig::config()->$setting;
+                } elseif (\SiteConfig::config()->$envSetting) {
+                    $value = \SiteConfig::config()->$envSetting;
                 }
             }
 
             if (!$value) {
-                if (getenv($setting)) {
-                    $value = getenv($setting);
-                } elseif (isset($_ENV[$setting])) {
-                    $value = $_ENV[$setting];
+                if (getenv($envSetting)) {
+                    $value = getenv($envSetting);
+                } elseif (isset($_ENV[$envSetting])) {
+                    $value = $_ENV[$envSetting];
                 }
             }
 

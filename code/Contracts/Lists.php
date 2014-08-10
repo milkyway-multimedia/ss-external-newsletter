@@ -1,4 +1,4 @@
-<?php
+<?php namespace Milkyway\SS\ExternalNewsletter\Contracts;
 /**
  * Milkyway Multimedia
  * SubscriberList.php
@@ -7,10 +7,6 @@
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
 
-namespace Milkyway\SS\MailchimpSync\Handlers;
-
-use Milkyway\SS\MailchimpSync\Handlers\Model\HTTP;
-
-class InterestGroups extends HTTP {
-
+interface Lists {
+    public function get($params = []);
 } 

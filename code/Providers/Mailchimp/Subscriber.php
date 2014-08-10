@@ -1,6 +1,4 @@
-<?php namespace Milkyway\SS\MailchimpSync\Handlers;
-
-use Milkyway\SS\MailchimpSync\Handlers\Model\HTTP;
+<?php namespace Milkyway\SS\ExternalNewsletter\Providers\Mailchimp;
 
 /**
  * Milkyway Multimedia
@@ -10,15 +8,9 @@ use Milkyway\SS\MailchimpSync\Handlers\Model\HTTP;
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
 
-class Subscriber extends HTTP {
-    public function get($listId, $status = 'subscribed', $opts = [], $params = []) {
-        $params['id'] = $listId;
-        $params['status'] = $status;
-
-        if(count($opts))
-            $params['opts'] = $opts;
-
-        $response = $this->results($this->endpoint('lists/members.json'), $params);
+class Subscriber extends JSON implements \Milkyway\SS\ExternalNewsletter\Contracts\Subscriber {
+    public function get($params = []) {
+        $response = $this->results('lists/members', $params);
 
         if(isset($response['data']))
             return $response['data'];
@@ -26,13 +18,13 @@ class Subscriber extends HTTP {
         return [];
     }
 
-    public function one($euid, $listId, $status = 'subscribed', $opts = [], $params = []) {
-        $all = $this->get($listId, $status, $opts, $params);
+    public function one($params = []) {
+        $all = $this->get($params);
 
         if(count($all)) {
             foreach($all as $one) {
                 foreach (new RecursiveIteratorIterator(new RecursiveArrayIterator($one)) as $key => $value) {
-                    if ($euid === $value)
+                    if ($params['euid'] === $value)
                         return $one;
                 }
 
@@ -88,8 +80,8 @@ class Subscriber extends HTTP {
                       'replace_interests' => !isset($args['do_not_replace_interests']),
                   ], $params);
 
-        $results = $this->results($this->endpoint('lists/subscribe.json'), $params);
-        $this->cleanCache();
+        $results = $this->results('lists/subscribe', $params);
+        $this->cleanCache('lists/members');
         return $results;
     }
 
@@ -104,8 +96,8 @@ class Subscriber extends HTTP {
                       'send_notify' => !isset($args['no_notifications']),
                   ] + $params;
 
-        $results = $this->results($this->endpoint('lists/unsubscribe.json'), $params);
-        $this->cleanCache();
+        $results = $this->results('lists/unsubscribe', $params);
+	    $this->cleanCache('lists/members');
         return $results;
     }
 }

@@ -1,4 +1,4 @@
-<?php namespace Milkyway\SS\MailchimpSync\Handlers\Model;
+<?php namespace Milkyway\SS\ExternalNewsletter\Handlers\Model;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
@@ -11,25 +11,21 @@ use GuzzleHttp\Message\ResponseInterface;
  * @package reggardocolaianni.com
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
-abstract class HTTP {
-    const API_VERSION = '2.0';
 
-    protected $endpoint = 'https://<dc>.api.mailchimp.com/';
+abstract class HTTP {
     protected $apiKey;
 
-    protected $cacheLifetime = 0;
+    protected $cacheLifetime = 1;
     protected $method = 'post';
 
     protected $client;
-    protected $cache;
 
-    public function __construct($apiKey, $cache = 0) {
+	// A cache is created for each action, so easy to remove for one specific action...
+    protected $caches = [];
+
+    public function __construct($apiKey, $cache = 1) {
         $this->apiKey = $apiKey;
         $this->cacheLifetime = $cache;
-    }
-
-    public function cleanCache() {
-        // $this->cache()->clean();
     }
 
     /**
@@ -54,21 +50,36 @@ abstract class HTTP {
         return ($response->getStatusCode() < 200 || $response->getStatusCode() > 399);
     }
 
-    protected function cache() {
-        if(!$this->cache)
-            $this->cache = \SS_Cache::factory('MailchimpSync_Handlers', 'Output', ['lifetime' => $this->cacheLifetime * 60 * 60]);
+    protected function cache($key = '') {
+	    $key = $key ? preg_replace('/[^a-zA-Z0-9_]/', '', get_class($this) . '_' . $key) : preg_replace('/[^a-zA-Z0-9_]/', '', get_class($this));
 
-        return $this->cache;
+	    if(!isset($this->caches[$key]))
+            $this->caches[$key] = \SS_Cache::factory($key, 'Output', ['lifetime' => $this->cacheLifetime * 60 * 60]);
+
+        return $this->caches[$key];
     }
+
+	public function cleanCache($key = '') {
+		if($key) {
+			$key = $key ? str_replace('\\', '', get_class($this)) . '_' . str_replace('/', '', $key) : str_replace('\\', '', get_class($this));
+
+			if(isset($this->caches[$key]))
+				$this->caches[$key]->clean();
+		}
+		else {
+			foreach($this->caches as $cache)
+				$cache->clean();
+		}
+	}
 
     protected function getCacheKey(array $vars = []) {
         return preg_replace('/[^a-zA-Z0-9_]/', '', get_class($this) . '_' . urldecode(http_build_query($vars, '', '_')));
     }
 
-    protected function results($url, $params = []) {
+    protected function results($action, $params = []) {
         $cacheKey = $this->getCacheKey($params);
 
-        if(!($body = unserialize($this->cache()->load($cacheKey)))) {
+        if(!($body = unserialize($this->cache($action)->load($cacheKey)))) {
             $params = array_merge($this->params(), $params);
 
             if($this->method != 'get')
@@ -76,7 +87,7 @@ abstract class HTTP {
 
             try {
                 $response = $this->http()->{$this->method}(
-                    $url,
+                    $this->endpoint($action),
                     $params
                 );
             } catch(RequestException $e) {
@@ -91,7 +102,7 @@ abstract class HTTP {
                 if(!$this->isValid($body))
                     throw new HTTP_Exception($response, sprintf('Data not received from %s. Please check your credentials.', $this->endpoint()));
 
-                $this->cache()->save(serialize($body), $cacheKey);
+                $this->cache($action)->save(serialize($body), $cacheKey);
 
                 return $body;
             }
@@ -108,21 +119,13 @@ abstract class HTTP {
         return true;
     }
 
-    protected function endpoint($action = '', $dataCentre = '')
-    {
-        if(!$dataCentre && $this->apiKey) {
-            $parts = explode('-', $this->apiKey);
-            $dataCentre = array_pop($parts);
-        }
-
-        return str_replace('<dc>', $dataCentre, \Controller::join_links($this->endpoint, static::API_VERSION, $action));
-    }
-
     protected function params() {
         return [
             'apikey' => $this->apiKey,
         ];
     }
+
+	abstract protected function endpoint($action = '');
 }
 
 class HTTP_Exception extends \Exception {
