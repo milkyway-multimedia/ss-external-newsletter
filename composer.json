@@ -18,10 +18,17 @@
 	"require"          : {
 		"silverstripe/framework"                 : "~3.1",
 		"milkyway-multimedia/ss-mwm-autocomplete": "dev-master",
+		"milkyway-multimedia/ss-zen-forms": "dev-master",
 		"silverstripe/gridfieldajaxrefresh"      : "dev-master",
 		"axyr/silverstripe-externaldata"         : "dev-master",
 		"guzzlehttp/guzzle"                      : "~4"
 	},
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "git@github.com:milkyway-multimedia/ss-zen-forms"
+		}
+	],
 	"config"           : {
 		"process-timeout": 600
 	},

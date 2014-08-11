@@ -82,9 +82,7 @@ class ExtSendLog extends DataObject
 			}
 		);
 
-		$fields = parent::getCMSFields();
-
-		return $fields;
+		return parent::getCMSFields();
 	}
 
 	public function canEdit($member = null)

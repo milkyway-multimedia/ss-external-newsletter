@@ -52,15 +52,16 @@ class ExtList extends DataObject
 								'info'
 							)->cms(),
 							GridField::create(
-								'AllEmails',
+								'UpdatedEmails',
 								'Emails',
-								$this->AllEmails(),
+								$this->UpdatedEmails(false),
 								GridFieldConfig_RecordEditor::create(50)
 									->removeComponentsByType('GridFieldFilterHeader')
 									->removeComponentsByType('GridFieldDetailForm')
 									->removeComponentsByType('GridFieldDeleteAction')
 									->addComponents(new ExternalDataGridFieldDetailForm())
 									->addComponents(new ExternalDataGridFieldDeleteAction())
+									->addComponents(new GridFieldAjaxRefresh(5000))
 							)
 						]
 					);
@@ -68,9 +69,7 @@ class ExtList extends DataObject
 			}
 		);
 
-		$fields = parent::getCMSFields();
-
-		return $fields;
+		return parent::getCMSFields();
 	}
 
 	public function AllEmails()
@@ -78,11 +77,16 @@ class ExtList extends DataObject
 		return singleton('Milkyway\SS\ExternalNewsletter\External\Subscriber')->fromExternalList($this->ExtId);
 	}
 
+	public function UpdatedEmails($cache = true)
+	{
+		return singleton('Milkyway\SS\ExternalNewsletter\External\Subscriber')->fromExternalList($this->ExtId, $cache);
+	}
+
 	public function requireDefaultRecords()
 	{
 		parent::requireDefaultRecords();
 
-		// Sync with Mailchimp database
+		// Sync with External Newsletter Database
 		$lists = \Injector::inst()->createWithArgs($this->provider, [\Milkyway\SS\ExternalNewsletter\Utilities::env_value('APIKey', $this)])->get();
 
 		foreach ($lists as $list) {

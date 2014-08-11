@@ -58,11 +58,11 @@ class Subscriber extends \DataExtension {
         $this->owner->unsubscribe();
     }
 
-    public function fromExternalList($listId) {
+    public function fromExternalList($listId, $cache = true) {
         $list = \ExternalDataList::create();
         $class = get_class($this->owner);
 
-        $result = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner)])->get($listId);
+        $result = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner), $cache ? 2 : 0])->get($listId);
 
         foreach($result as $item) {
             $record = \Object::create($class, $item);

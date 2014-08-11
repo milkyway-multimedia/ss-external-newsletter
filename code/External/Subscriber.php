@@ -34,8 +34,7 @@ class Subscriber extends \ExternalDataObject {
             }
         );
 
-        $fields = parent::getCMSFields();
-        return $fields;
+        return parent::getCMSFields();
     }
 
     public function getTitle(){

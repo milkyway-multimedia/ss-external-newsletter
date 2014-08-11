@@ -41,10 +41,10 @@ class Utilities {
             $dbSetting = $prefix . '_' . $setting;
             $envSetting = strtolower($prefix) . '_' . $mapping[$setting];
 
-            if($object && $object->config()->$envSetting)
+            if($object)
                 $value = $object->config()->$envSetting;
 
-	        if(!$value)
+	        if(!$value && $object)
 		        $value = $object->config()->{$mapping[$setting]};
 
             if (!$value) {

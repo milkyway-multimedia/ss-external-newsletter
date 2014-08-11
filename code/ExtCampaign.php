@@ -47,8 +47,6 @@ class ExtCampaign extends DataObject
 			}
 		);
 
-		$fields = parent::getCMSFields();
-
-		return $fields;
+		return parent::getCMSFields();
 	}
 }

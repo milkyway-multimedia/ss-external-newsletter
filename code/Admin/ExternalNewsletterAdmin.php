@@ -22,6 +22,26 @@ class ExternalNewsletterAdmin extends ModelAdmin
 
 	public function alternateAccessCheck()
 	{
-		return !$this->config()->hidden;
+		return !$this->config()->hidden && \Milkyway\SS\ExternalNewsletter\Utilities::env_value('APIKey', $this);
+	}
+
+	public function getEditForm($id = null, $fields = null) {
+		$this->beforeExtending('updateEditForm', function(Form $form) {
+			if($lists = $form->Fields()->fieldByName($this->sanitiseClassName('ExtList'))) {
+				$lists->Config->addComponents(
+					new GridFieldAjaxRefresh(5000)
+				);
+			}
+		});
+
+		return parent::getEditForm($id, $fields);
+	}
+
+	public function getList() {
+		$this->beforeExtending('updateList', function($list) {
+
+		});
+
+		return parent::getList();
 	}
 } 
