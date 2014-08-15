@@ -7,7 +7,10 @@
  * @package reggardocolaianni.com
  * @author  Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
-class ExternalNewsletterAdmin extends ModelAdmin
+
+use \Milkyway\SS\ExternalNewsletter\Utilities;
+
+class ExtNewsletterAdmin extends ModelAdmin
 {
 	private static $menu_title = "Email Campaigns";
 	private static $url_segment = "email-campaigns";
@@ -22,14 +25,16 @@ class ExternalNewsletterAdmin extends ModelAdmin
 
 	public function alternateAccessCheck()
 	{
-		return !$this->config()->hidden && \Milkyway\SS\ExternalNewsletter\Utilities::env_value('APIKey', $this);
+		return !$this->config()->hidden && Utilities::env_value('APIKey', $this);
 	}
 
 	public function getEditForm($id = null, $fields = null) {
 		$this->beforeExtending('updateEditForm', function(Form $form) {
 			if($lists = $form->Fields()->fieldByName($this->sanitiseClassName('ExtList'))) {
+				singleton('ExtList')->sync();
+
 				$lists->Config->addComponents(
-					new GridFieldAjaxRefresh(5000)
+					new GridFieldAjaxRefresh(10000)
 				);
 			}
 		});
@@ -39,7 +44,14 @@ class ExternalNewsletterAdmin extends ModelAdmin
 
 	public function getList() {
 		$this->beforeExtending('updateList', function($list) {
+			if($listIds = Utilities::env_value('AllowedLists')) {
+				if ((strpos($listIds, ',') !== false) || is_array($listIds))
+					$listsIds = is_array($listIds) ? $listIds : explode(',', $listIds);
+				else
+					$listsIds = [$listIds];
 
+				$list->filter('ExtId', $listsIds);
+			}
 		});
 
 		return parent::getList();

@@ -1,6 +1,5 @@
 <?php namespace Milkyway\SS\ExternalNewsletter\Providers\Mailchimp;
 
-use Milkyway\SS\ExternalNewsletter\Contracts\Subscriber;
 use Milkyway\SS\ExternalNewsletter\Utilities;
 
 /**
@@ -24,8 +23,8 @@ class SubscriberManager implements \Milkyway\SS\ExternalNewsletter\Contracts\Sub
 		}
 	}
 
-	public function subscribe(Subscriber $handler, \ViewableData $subscriber, $params = []) {
-		if(isset($params['list']) || $subscriber->SubcriberListID || $subscriber->ExternalListID || $subscriber->MailchimpListID) {
+	public function subscribe(\Milkyway\SS\ExternalNewsletter\Contracts\Subscriber $handler, \ViewableData $subscriber, $params = []) {
+		if(isset($params['list']) || $subscriber->SubcriberListID || $subscriber->ExtListId || $subscriber->MailchimpListID) {
 			$email = $handler->subscribe(
 				array_merge([
 					'list' => $this->getListIdFromRecord($subscriber),
@@ -43,8 +42,8 @@ class SubscriberManager implements \Milkyway\SS\ExternalNewsletter\Contracts\Sub
 		return [];
 	}
 
-	public function unsubscribe(Subscriber $handler, \ViewableData $subscriber, $params = []) {
-		if(isset($params['list']) || $subscriber->SubcriberListID || $subscriber->ExternalListID || $subscriber->MailchimpListID) {
+	public function unsubscribe(\Milkyway\SS\ExternalNewsletter\Contracts\Subscriber $handler, \ViewableData $subscriber, $params = []) {
+		if(isset($params['list']) || $subscriber->SubcriberListID || $subscriber->ExtListId || $subscriber->MailchimpListID) {
 			$handler->unsubscribe(
 				array_merge([
 					'list' => $this->getListIdFromRecord($subscriber),
@@ -54,6 +53,6 @@ class SubscriberManager implements \Milkyway\SS\ExternalNewsletter\Contracts\Sub
 	}
 
 	protected function getListIdFromRecord($subscriber) {
-		return $subscriber->SubcriberListID ? $subscriber->SubcriberListID : $subscriber->MailchimpListID ? $subscriber->MailchimpListID : $subscriber->ExternalListID;
+		return $subscriber->SubcriberListID ? $subscriber->SubcriberListID : $subscriber->MailchimpListID ? $subscriber->MailchimpListID : $subscriber->ExtListId;
 	}
 } 

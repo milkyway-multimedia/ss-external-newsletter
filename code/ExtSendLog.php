@@ -45,14 +45,20 @@ class ExtSendLog extends DataObject
 	protected $handler = 'Milkyway\SS\ExternalNewsletter\Contracts\Campaign';
 	protected $manager = 'Milkyway\SS\ExternalNewsletter\Contracts\CampaignManager';
 
-	protected $listsHandler = 'Milkyway\SS\ExternalNewsletter\Contracts\Lists';
-
 	private $updated = false;
 	private $attemptFix = false;
 
 	public function getCMSFields()
 	{
+		// Download external lists before we show the send log form
+		singleton('ExtList')->sync();
+
 		$this->beforeExtending('updateCMSFields', function ($fields) {
+				if(!ExtCampaign::get()->exists()) {
+					$fields->insertBefore(\FormMessageField::create('NO-CAMPAIGNS', _t('ExternalNewsletter.ERROR-NO_CAMPAIGNS', 'You have not added an email campaign to send yet. <a href="{cmsLink}">Create one now</a>.', ['cmsLink' => singleton('ExtNewsletterAdmin')->Link()]), 'warning')->cms(), 'Status');
+					$fields->removeByName('CampaignID');
+				}
+
 				if (!$this->ExtId)
 					$fields->removeByName('ExtId');
 
@@ -68,17 +74,8 @@ class ExtSendLog extends DataObject
 				if (!$this->Sent)
 					$fields->removeByName('Sent');
 
-				$fields->insertBefore($lists = Select2Field::create('MailingListID', 'Send to:', '',
-					\Injector::inst()->createWithArgs($this->listsHandler, [Utilities::env_value('APIKey', $this)])->get(), null, 'name', 'id|name'
-				), 'CampaignID');
-
-				$fields->removeByName('CampaignID');
 				$fields->removeByName('AuthorID');
 				$fields->removeByName('ListID');
-
-				$lists->requireSelection = true;
-				$lists->minSearchLength = 0;
-				$lists->suggestURL = false;
 			}
 		);
 

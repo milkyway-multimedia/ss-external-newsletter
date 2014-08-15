@@ -11,7 +11,7 @@ class Subscriber extends \ExternalDataObject {
     private static $singular_name = 'Email';
 
     private static $extensions = [
-        'Milkyway\SS\ExternalNewsletter\Extensions\Subscriber',
+        "Milkyway\\SS\\ExternalNewsletter\\Extensions\\Subscriber('AllEmails')",
     ];
 
     static $db = array(

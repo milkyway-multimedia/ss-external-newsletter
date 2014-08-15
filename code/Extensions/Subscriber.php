@@ -59,10 +59,10 @@ class Subscriber extends \DataExtension {
     }
 
     public function fromExternalList($listId, $cache = true) {
-        $list = \ExternalDataList::create();
+        $list = \ArrayList::create();
         $class = get_class($this->owner);
 
-        $result = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner), $cache ? 2 : 0])->get($listId);
+        $result = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner), $cache ? 2 : 0])->get(['id' =>$listId]);
 
         foreach($result as $item) {
             $record = \Object::create($class, $item);
@@ -104,7 +104,7 @@ class Subscriber extends \DataExtension {
 			    $params
 		    );
 
-		    $listId = isset($params['list_id']) ? $params['list_id'] : '';
+		    $listId = isset($params['id']) ? $params['id'] : '';
 		    $this->owner->removeFromExternalLists($listId);
 	    }
     }

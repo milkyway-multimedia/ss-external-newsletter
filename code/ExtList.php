@@ -54,17 +54,25 @@ class ExtList extends DataObject
 							GridField::create(
 								'UpdatedEmails',
 								'Emails',
-								$this->UpdatedEmails(false),
-								GridFieldConfig_RecordEditor::create(50)
+								$this->UpdatedEmails(),
+								$config = GridFieldConfig_RecordEditor::create(50)
 									->removeComponentsByType('GridFieldFilterHeader')
 									->removeComponentsByType('GridFieldDetailForm')
 									->removeComponentsByType('GridFieldDeleteAction')
 									->addComponents(new ExternalDataGridFieldDetailForm())
 									->addComponents(new ExternalDataGridFieldDeleteAction())
-									->addComponents(new GridFieldAjaxRefresh(5000))
+									->addComponents(new GridFieldAjaxRefresh(10000))
 							)
 						]
 					);
+
+					if($config->getComponentByType('GridFieldAddNewButton'))
+						$config->getComponentByType('GridFieldAddNewButton')->setButtonName(_t('ExternalNewsletter.SUBSCRIBE_AN_EMAIL', 'Subscribe an email'));
+
+					if(($received = $fields->dataFieldByName('Received')) && $config = $received->Config) {
+						$config->getComponentByType('GridFieldAddNewButton');
+						$config->getComponentByType('GridFieldAddNewButton')->setButtonName(_t('ExternalNewsletter.SEND_A_CAMPAIGN_TO_THIS_LIST', 'Send an email campaign to this list'));
+					}
 				}
 			}
 		);
@@ -77,7 +85,7 @@ class ExtList extends DataObject
 		return singleton('Milkyway\SS\ExternalNewsletter\External\Subscriber')->fromExternalList($this->ExtId);
 	}
 
-	public function UpdatedEmails($cache = true)
+	public function UpdatedEmails($cache = false)
 	{
 		return singleton('Milkyway\SS\ExternalNewsletter\External\Subscriber')->fromExternalList($this->ExtId, $cache);
 	}
@@ -85,7 +93,10 @@ class ExtList extends DataObject
 	public function requireDefaultRecords()
 	{
 		parent::requireDefaultRecords();
+		$this->sync();
+	}
 
+	public function sync() {
 		// Sync with External Newsletter Database
 		$lists = \Injector::inst()->createWithArgs($this->provider, [\Milkyway\SS\ExternalNewsletter\Utilities::env_value('APIKey', $this)])->get();
 

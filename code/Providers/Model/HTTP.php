@@ -79,7 +79,7 @@ abstract class HTTP {
     protected function results($action, $params = []) {
         $cacheKey = $this->getCacheKey($params);
 
-        if(!($body = unserialize($this->cache($action)->load($cacheKey)))) {
+        if(!$this->cacheLifetime || !($body = unserialize($this->cache($action)->load($cacheKey)))) {
             $params = array_merge($this->params(), $params);
 
             if($this->method != 'get')
