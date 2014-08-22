@@ -82,6 +82,9 @@ class Subscriber extends \DataExtension {
 	        if(!isset($params['email']))
 		        $params['email'] = $this->owner->{$this->emailField};
 
+            if(!isset($params['list']))
+                $params['list'] = $this->owner->ExtListId ? $this->owner->ExtListId : $this->owner->ExternalListID;
+
             $email = \Injector::inst()->get($this->manager)->subscribe(
 	            \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner)]),
 	            $this->owner,
@@ -97,6 +100,9 @@ class Subscriber extends \DataExtension {
 	    if($this->owner->{$this->emailField} || isset($params['email'])) {
 		    if(!isset($params['email']))
 			    $params['email'] = $this->owner->{$this->emailField};
+
+            if(!isset($params['list']))
+                $params['list'] = $this->owner->ExtListId ? $this->owner->ExtListId : $this->owner->ExternalListID;
 
 		   \Injector::inst()->get($this->manager)->unsubscribe(
 			    \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner)]),
@@ -130,7 +136,7 @@ class Subscriber extends \DataExtension {
 
     public function addToExternalLists($leid = '') {
         if($listId = $this->owner->ExternalListID) {
-            $listsIds = $this->convertListIdsToMany($listId);
+            $listsIds = Utilities::csv_to_array($listId);
 
             foreach($listsIds as $listId) {
                 $list = \ExtList::find_or_make(['McId' => $listId]);
@@ -143,7 +149,7 @@ class Subscriber extends \DataExtension {
 
     public function removeFromExternalLists() {
         if($listId = $this->owner->ExternalListID) {
-            $listsIds = $this->convertListIdsToMany($listId);
+            $listsIds = Utilities::csv_to_array($listId);
 
             foreach($listsIds as $listId) {
                 $list = \ExtList::find_or_make(['McId' => $listId]);
@@ -164,22 +170,5 @@ class Subscriber extends \DataExtension {
         }
 
         return $vars;
-    }
-
-    /**
-     * @param $listId
-     *
-     * @return array
-     */
-    protected function convertListIdsToMany($listId)
-    {
-        if ((strpos($listId, ',') !== false) || is_array($listId)) {
-            $listsIds = is_array($listId) ? $listId : explode(',', $listId);
-            return $listsIds;
-        } else
-            $listsIds = [$listId];
-        {
-            return $listsIds;
-        }
     }
 }

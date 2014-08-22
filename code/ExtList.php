@@ -1,4 +1,6 @@
 <?php
+use Milkyway\SS\ExternalNewsletter\Utilities;
+
 /**
  * Milkyway Multimedia
  * ExtList.php
@@ -59,12 +61,19 @@ class ExtList extends DataObject
 									->removeComponentsByType('GridFieldFilterHeader')
 									->removeComponentsByType('GridFieldDetailForm')
 									->removeComponentsByType('GridFieldDeleteAction')
-									->addComponents(new ExternalDataGridFieldDetailForm())
+									->addComponents($detailForm = new ExternalDataGridFieldDetailForm())
 									->addComponents(new ExternalDataGridFieldDeleteAction())
 									->addComponents(new GridFieldAjaxRefresh(10000))
-							)
+							)->setModelClass('Milkyway\SS\ExternalNewsletter\External\Subscriber')
 						]
 					);
+
+                    $self = $this;
+
+                    $detailForm->setItemEditFormCallback(function($form, $controller) use($self) {
+                            $controller->record->ExtListId = $self->ExtId;
+                        }
+                    );
 
 					if($config->getComponentByType('GridFieldAddNewButton'))
 						$config->getComponentByType('GridFieldAddNewButton')->setButtonName(_t('ExternalNewsletter.SUBSCRIBE_AN_EMAIL', 'Subscribe an email'));
@@ -100,13 +109,17 @@ class ExtList extends DataObject
 		// Sync with External Newsletter Database
 		$lists = \Injector::inst()->createWithArgs($this->provider, [\Milkyway\SS\ExternalNewsletter\Utilities::env_value('APIKey', $this)])->get();
 
+        $allowed = Utilities::csv_to_array(Utilities::env_value('AllowedLists'));
+
 		foreach ($lists as $list) {
-			if (isset($list['id'])) {
+			if (isset($list['id']) && in_array($list['id'], $allowed)) {
 				$list['Title'] = (isset($list['name']) ? $list['name'] : '');
 
-				if (static::find_or_make(['ExtId' => $list['id']], $list)->isNew)
-					\DB::alteration_message((isset($list['name']) ? $list['name'] : $list['id']) . ' List grabbed from ' . \Milkyway\SS\ExternalNewsletter\Utilities::using(), 'created');
+				if (static::find_or_make(['ExtId' => $list['id']], $list)->isNew && (Controller::curr() instanceof \DevelopmentAdmin))
+					\DB::alteration_message((isset($list['name']) ? $list['name'] : $list['id']) . ' List grabbed from ' . Utilities::using(), 'created');
 			}
 		}
+
+        ExtList::get()->exclude('ExtId', $allowed)->removeAll();
 	}
 } 

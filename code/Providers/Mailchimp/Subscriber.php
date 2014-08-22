@@ -80,7 +80,19 @@ class Subscriber extends JSON implements \Milkyway\SS\ExternalNewsletter\Contrac
                       'replace_interests' => !isset($args['do_not_replace_interests']),
                   ], $params);
 
-        $results = $this->results('lists/subscribe', $params);
+        $results = [];
+
+        if(is_array($params['id'])) {
+            $listParams = $params;
+
+            foreach($params['id'] as $list) {
+                $listParams['id'] = $list;
+                $results[] = $this->results('lists/subscribe', $listParams);
+            }
+        }
+        else
+            $results = $this->results('lists/subscribe', $params);
+
         $this->cleanCache('lists/members');
         return $results;
     }

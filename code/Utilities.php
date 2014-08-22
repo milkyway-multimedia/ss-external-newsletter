@@ -74,4 +74,22 @@ class Utilities {
 
         return $value;
     }
+
+    /**
+     * Arrays cant be set in php environment, so we can split those by a delimiter (defaults to comma)
+     *
+     * @param $value
+     *
+     * @return array
+     */
+    public static function csv_to_array($value, $delimiter = ',')
+    {
+        if(is_array($value))
+            return $value;
+        elseif (strpos($value, $delimiter) !== false) {
+            return explode($delimiter, $value);
+        } else {
+            return [$value];
+        }
+    }
 } 

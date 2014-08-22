@@ -22,6 +22,9 @@ class Config implements \Milkyway\SS\ExternalNewsletter\Contracts\Config
 
 			'DoubleOptIn'          => 'double_opt_in',
 
+            'AllowedLists'         => 'allowed_lists',
+            'AllowedGroups'        => 'allowed_groups',
+
 			'DefaultLists'         => 'default_lists',
 			'DefaultParams'        => 'default_params',
 			'DefaultGroups'        => 'default_groups',

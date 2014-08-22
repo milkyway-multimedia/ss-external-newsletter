@@ -45,10 +45,7 @@ class ExtNewsletterAdmin extends ModelAdmin
 	public function getList() {
 		$this->beforeExtending('updateList', function($list) {
 			if($listIds = Utilities::env_value('AllowedLists')) {
-				if ((strpos($listIds, ',') !== false) || is_array($listIds))
-					$listsIds = is_array($listIds) ? $listIds : explode(',', $listIds);
-				else
-					$listsIds = [$listIds];
+				$listsIds = Utilities::csv_to_array($listIds);
 
 				$list->filter('ExtId', $listsIds);
 			}
