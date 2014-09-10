@@ -4,6 +4,10 @@ External Newsletter
 
 It is very basic at the moment. **Use with caution**
 
+## TODO
+* Queue support (so user is not sitting their waiting for syncs to finish)
+* Support for IndieWeb (everything stored on SS side as well as off-site)
+
 ## Install
 Add the following to your composer.json file
 

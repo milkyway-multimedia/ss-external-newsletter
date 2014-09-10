@@ -1,4 +1,4 @@
-<?php namespace Milkyway\SS\ExternalNewsletter\Handlers\Model;
+<?php namespace Milkyway\SS\ExternalNewsletter\Providers\Model;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;

@@ -7,7 +7,7 @@
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
 
-use Milkyway\SS\ExternalNewsletter\Handlers\Model\HTTP;
+use Milkyway\SS\ExternalNewsletter\Providers\Model\HTTP;
 use Milkyway\SS\ExternalNewsletter\Utilities;
 
 abstract class JSON extends HTTP {

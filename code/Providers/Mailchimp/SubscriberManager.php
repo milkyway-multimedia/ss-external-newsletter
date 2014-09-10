@@ -17,9 +17,6 @@ class SubscriberManager implements \Milkyway\SS\ExternalNewsletter\Contracts\Sub
 				if(isset($data['merges'][$var]))
 					$subscriber->$db = $data['merges'][$var];
 			}
-
-			$subscriber->Email = $subscriber->email;
-			$subscriber->ID = $subscriber->euid;
 		}
 	}
 

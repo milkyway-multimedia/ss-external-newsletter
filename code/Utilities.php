@@ -10,7 +10,7 @@
 namespace Milkyway\SS\ExternalNewsletter;
 
 
-class Utilities {
+class Utilities implements \PermissionProvider {
     public static $environment = [];
 
 	public static function config() {
@@ -91,5 +91,14 @@ class Utilities {
         } else {
             return [$value];
         }
+    }
+
+    public function providePermissions() {
+        return array(
+            'MAILING_LISTS_CREATE' => array(
+                'name' => _t('ExternalNewsletter.PERMISSION-MAILING_LISTS_CREATE', 'Can create new mailing lists'),
+                'category' => _t('ExternalNewsletter.PERMISSION-CATEGORY', singleton('ExternalNewsletterAdmin')->Title),
+            )
+        );
     }
 } 

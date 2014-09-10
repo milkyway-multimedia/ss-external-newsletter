@@ -1,0 +1,8 @@
+---
+Name: external-newsletter--manymany
+After:
+  - 'silverstripe-cacheinclude/*'
+---
+Injector:
+  ManyManyList:
+    class: Milkyway\SS\ExternalNewsletter\Extensions\ManyManyList

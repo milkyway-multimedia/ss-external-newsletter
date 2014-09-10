@@ -8,31 +8,10 @@
  * @author  Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
 
-class Config implements \Milkyway\SS\ExternalNewsletter\Contracts\Config
+class Config extends \Milkyway\SS\ExternalNewsletter\Providers\Model\Config
 {
 	public function prefix()
 	{
 		return 'Mailchimp';
-	}
-
-	public function map()
-	{
-		return [
-			'APIKey'               => 'api_key',
-
-			'DoubleOptIn'          => 'double_opt_in',
-
-            'AllowedLists'         => 'allowed_lists',
-            'AllowedGroups'        => 'allowed_groups',
-
-			'DefaultLists'         => 'default_lists',
-			'DefaultParams'        => 'default_params',
-			'DefaultGroups'        => 'default_groups',
-
-			'Subscribe_OnWrite'    => 'subscribe_on_write',
-			'Unsubscribe_OnDelete' => 'unsubscribe_on_delete',
-
-			'AllowedLists'         => 'allowed_lists',
-		];
 	}
 }

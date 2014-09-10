@@ -13,30 +13,17 @@ class ExtList extends DataObject
 {
 	private static $singular_name = 'Mailing List';
 
-	private static $db = [
-		'Title' => 'Varchar',
-		'ExtId' => 'Varchar',
-	];
+    private static $db = [
+        'Title' => 'Varchar',
+    ];
 
-	private static $indexes = [
-		'ExtId' => true,
-	];
-
-	private static $has_many = [
-		'Received' => 'ExtSendLog',
-	];
-
-	protected $provider = 'Milkyway\SS\ExternalNewsletter\Contracts\Lists';
+    private static $extensions = [
+        "Milkyway\\SS\\ExternalNewsletter\\Extensions\\Lists",
+    ];
 
 	public static function find_or_make($filter = [], $data = [])
 	{
-		if (!($list = static::get()->filter($filter)->first())) {
-			$list = static::create(array_merge($filter, $data));
-			$list->write();
-			$list->isNew = true;
-		}
-
-		return $list;
+		singleton(get_called_class())->findOrMake($filter, $data);
 	}
 
 	public function getCMSFields()
@@ -45,43 +32,38 @@ class ExtList extends DataObject
 			'updateCMSFields',
 			function ($fields) {
 				if ($this->ExtId) {
-					$fields->addFieldsToTab(
-						'Root.AllEmails',
-						[
-							FormMessageField::create(
-								'NOTE-AllEmails',
-								'This is a list of all emails subscribed to this mailing list from all sources',
-								'info'
-							)->cms(),
-							GridField::create(
-								'UpdatedEmails',
-								'Emails',
-								$this->UpdatedEmails(),
-								$config = GridFieldConfig_RecordEditor::create(50)
-									->removeComponentsByType('GridFieldFilterHeader')
-									->removeComponentsByType('GridFieldDetailForm')
-									->removeComponentsByType('GridFieldDeleteAction')
-									->addComponents($detailForm = new ExternalDataGridFieldDetailForm())
-									->addComponents(new ExternalDataGridFieldDeleteAction())
-									->addComponents(new GridFieldAjaxRefresh(10000))
-							)->setModelClass('Milkyway\SS\ExternalNewsletter\External\Subscriber')
-						]
-					);
-
-                    $self = $this;
-
-                    $detailForm->setItemEditFormCallback(function($form, $controller) use($self) {
-                            $controller->record->ExtListId = $self->ExtId;
-                        }
-                    );
-
-					if($config->getComponentByType('GridFieldAddNewButton'))
-						$config->getComponentByType('GridFieldAddNewButton')->setButtonName(_t('ExternalNewsletter.SUBSCRIBE_AN_EMAIL', 'Subscribe an email'));
-
-					if(($received = $fields->dataFieldByName('Received')) && $config = $received->Config) {
-						$config->getComponentByType('GridFieldAddNewButton');
-						$config->getComponentByType('GridFieldAddNewButton')->setButtonName(_t('ExternalNewsletter.SEND_A_CAMPAIGN_TO_THIS_LIST', 'Send an email campaign to this list'));
-					}
+//					$fields->addFieldsToTab(
+//						'Root.AllEmails',
+//						[
+//							FormMessageField::create(
+//								'NOTE-AllEmails',
+//								'This is a list of all emails subscribed to this mailing list from all sources',
+//								'info'
+//							)->cms(),
+//							GridField::create(
+//								'UpdatedEmails',
+//								'Emails',
+//								$this->UpdatedEmails(),
+//								$config = GridFieldConfig_RecordEditor::create(50)
+//									->removeComponentsByType('GridFieldFilterHeader')
+//									->removeComponentsByType('GridFieldDetailForm')
+//									->removeComponentsByType('GridFieldDeleteAction')
+//									->addComponents($detailForm = new ExternalDataGridFieldDetailForm())
+//									->addComponents(new ExternalDataGridFieldDeleteAction())
+//									->addComponents(new GridFieldAjaxRefresh(10000))
+//							)->setModelClass('Milkyway\SS\ExternalNewsletter\External\Subscriber')
+//						]
+//					);
+//
+//                    $self = $this;
+//
+//                    $detailForm->setItemEditFormCallback(function($form, $controller) use($self) {
+//                            $controller->record->ExtListId = $self->ExtId;
+//                        }
+//                    );
+//
+//					if($config->getComponentByType('GridFieldAddNewButton'))
+//						$config->getComponentByType('GridFieldAddNewButton')->setButtonName(_t('ExternalNewsletter.SUBSCRIBE_AN_EMAIL', 'Subscribe an email'));
 				}
 			}
 		);
@@ -89,37 +71,85 @@ class ExtList extends DataObject
 		return parent::getCMSFields();
 	}
 
-	public function AllEmails()
-	{
-		return singleton('Milkyway\SS\ExternalNewsletter\External\Subscriber')->fromExternalList($this->ExtId);
-	}
-
-	public function UpdatedEmails($cache = false)
-	{
-		return singleton('Milkyway\SS\ExternalNewsletter\External\Subscriber')->fromExternalList($this->ExtId, $cache);
-	}
-
 	public function requireDefaultRecords()
 	{
 		parent::requireDefaultRecords();
-		$this->sync();
+
+        if(!Utilities::env_value('NoListSync') && !isset($_GET['forceExternalSync']))
+		    $this->sync(!isset($_GET['keepExisting']));
 	}
 
-	public function sync() {
-		// Sync with External Newsletter Database
-		$lists = \Injector::inst()->createWithArgs($this->provider, [\Milkyway\SS\ExternalNewsletter\Utilities::env_value('APIKey', $this)])->get();
+    /**
+     * Scaffold a simple edit form for all properties on this dataobject,
+     * based on default {@link FormField} mapping in {@link DBField::scaffoldFormField()}.
+     * Field labels/titles will be auto generated from {@link DataObject::fieldLabels()}.
+     *
+     * @uses FormScaffolder
+     *
+     * @param array $_params Associative array passing through properties to {@link FormScaffolder}.
+     * @return FieldList
+     */
+    public function scaffoldFormFields($_params = null) {
+        $params = array_merge(
+            array(
+                'tabbed' => false,
+                'includeRelations' => false,
+                'restrictFields' => false,
+                'fieldClasses' => false,
+                'ajaxSafe' => false
+            ),
+            (array)$_params
+        );
 
-        $allowed = Utilities::csv_to_array(Utilities::env_value('AllowedLists'));
+        $fs = new FormScaffolder($this);
+        $fs->tabbed = $params['tabbed'];
+        $fs->includeRelations = $params['includeRelations'];
+        $fs->restrictFields = $params['restrictFields'];
+        $fs->fieldClasses = $params['fieldClasses'];
+        $fs->ajaxSafe = $params['ajaxSafe'];
 
-		foreach ($lists as $list) {
-			if (isset($list['id']) && in_array($list['id'], $allowed)) {
-				$list['Title'] = (isset($list['name']) ? $list['name'] : '');
+        $includeRelations = $fs->includeRelations;
 
-				if (static::find_or_make(['ExtId' => $list['id']], $list)->isNew && (Controller::curr() instanceof \DevelopmentAdmin))
-					\DB::alteration_message((isset($list['name']) ? $list['name'] : $list['id']) . ' List grabbed from ' . Utilities::using(), 'created');
-			}
-		}
+        if($fs->includeRelations && is_array($fs->includeRelations) && isset($fs->includeRelations['many_many'])) {
+            unset($fs->includeRelations['many_many']);
+        }
+        elseif($fs->includeRelations) {
+            $fs->includeRelations = [
+                'has_many' => true,
+            ];
+        }
 
-        ExtList::get()->exclude('ExtId', $allowed)->removeAll();
-	}
+        $fields = $fs->getFieldList();
+
+        if($this->many_many()
+           && ($includeRelations === true || isset($includeRelations['many_many']))) {
+
+            foreach($this->many_many() as $relationship => $component) {
+                if($fs->tabbed) {
+                    $relationTab = $fields->findOrMakeTab(
+                        "Root.$relationship",
+                        $this->fieldLabel($relationship)
+                    );
+                }
+
+                $fieldClass = (isset($fs->fieldClasses[$relationship]))
+                    ? $fs->fieldClasses[$relationship]
+                    : 'GridField';
+
+                $grid = Object::create($fieldClass,
+                    $relationship,
+                    $this->fieldLabel($relationship),
+                    $this->getManyManyComponents($relationship),
+                    GridFieldConfig_RelationEditor::create()
+                );
+                if($fs->tabbed) {
+                    $fields->addFieldToTab("Root.$relationship", $grid);
+                } else {
+                    $fields->push($grid);
+                }
+            }
+        }
+
+        return $fields;
+    }
 } 

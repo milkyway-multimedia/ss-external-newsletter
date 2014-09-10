@@ -20,7 +20,6 @@
 		"milkyway-multimedia/ss-mwm-autocomplete": "dev-master",
 		"milkyway-multimedia/ss-zen-forms": "dev-master",
 		"silverstripe/gridfieldajaxrefresh"      : "dev-master",
-		"axyr/silverstripe-externaldata"         : "dev-master",
 		"guzzlehttp/guzzle"                      : "~4"
 	},
 	"repositories": [

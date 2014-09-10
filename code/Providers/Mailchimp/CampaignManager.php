@@ -11,7 +11,7 @@ namespace Milkyway\SS\ExternalNewsletter\Providers\Mailchimp;
 
 
 use Milkyway\SS\ExternalNewsletter\Contracts\Campaign;
-use Milkyway\SS\ExternalNewsletter\Handlers\Model\HTTP_Exception;
+use Milkyway\SS\ExternalNewsletter\Providers\Model\HTTP_Exception;
 
 class CampaignManager implements \Milkyway\SS\ExternalNewsletter\Contracts\CampaignManager {
 	public function postVars(\ExtSendLog $campaign) {

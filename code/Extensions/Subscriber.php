@@ -18,44 +18,85 @@ class Subscriber extends \DataExtension {
         ],
     ];
 
+    protected $relation;
     protected $emailField = 'Email';
 
     protected $handler = 'Milkyway\SS\ExternalNewsletter\Contracts\Subscriber';
     protected $manager = 'Milkyway\SS\ExternalNewsletter\Contracts\SubscriberManager';
 
-    public function __construct($type = '', $emailField = 'Email')
+    protected $listsHandler = 'Milkyway\SS\ExternalNewsletter\Contracts\Lists';
+
+    public function __construct($relation = '', $emailField = 'Email')
     {
         parent::__construct();
         $this->emailField = $emailField;
+        $this->relation = $relation;
     }
 
     public static function get_extra_config($class, $extension, $args) {
-        $type = isset($args[0]) ? $args[0] : $class;
+        $relation = isset($args[0]) ? $args[0] : $class;
 
         \Config::inst()->update('ExtList', 'belongs_many_many', [
-                $type => $class,
+                $relation => $class,
             ]
         );
 
         return null;
     }
 
+    public function findOrMake($filter = [], $data = [])
+    {
+        if (!($item = $this->owner->get()->filter($filter)->first())) {
+            $item = $this->owner->create(array_merge($filter, $data));
+            $item->write();
+            $item->isNew = true;
+        }
+
+        return $item;
+    }
+
     public function updateCMSFields(\FieldList $fields) {
-        $fields->removeByName('EUId');
+        if($this->owner->EUId) {
+            if(!\Permission::check('ADMIN')) {
+                $fields->replaceField(
+                    'EUId',
+                    \ReadonlyField::create('EUId', _t('ExternalNewsletter.EUId', 'Unique Email ID'))->setDescription(
+                        _t(
+                            'ExternalNewsletter.DESC-EUId',
+                            'This is the ID of this subscriber that it is tracking on your mailing list provider.'
+                        )
+                    )
+                );
+            }
+        }
+        else
+            $fields->removeByName('EUId');
     }
 
-    public function onBeforeWrite() {
-        if(!Utilities::env_value('Subscribe_OnWrite', $this->owner))
-            return;
+    public function onAfterManyManyRelationAdd($list, &$extraFields) {
+        if($list && $list->dataClass() == get_class(singleton('ExtList'))) {
+            if($this->owner->ExtListId)
+                $listId = $this->owner->ExtListId;
+            else {
+                $listId = \DataList::create($list->dataClass())->byId($list->getForeignID())->ExtId;
+            }
 
-        $this->owner->subscribe();
+            if($listId)
+                $this->owner->subscribeToExternalList(['list' => $listId]);
+        }
     }
 
-    public function onBeforeDelete() {
-        if(!Utilities::env_value('Unsubscribe_OnDelete', $this->owner))
-            return;
+    public function onAfterManyManyRelationRemove($list) {
+        if($list && $list->dataClass() == get_class(singleton('ExtList'))) {
+            if($this->owner->ExtListId)
+                $listId = $this->owner->ExtListId;
+            else {
+                $listId = \DataList::create($list->dataClass())->byId($list->getForeignID())->ExtId;
+            }
 
-        $this->owner->unsubscribe();
+            if($listId)
+                $this->owner->unsubscribeFromExternalList(['list' => $listId]);
+        }
     }
 
     public function fromExternalList($listId, $cache = true) {
@@ -77,7 +118,53 @@ class Subscriber extends \DataExtension {
         return $list;
     }
 
-    public function subscribeToExternalList($params = []) {
+    public function sync($useListId = '', $deleteNonExisting = false) {
+        // Sync with External Subscriber Database
+        if($useListId)
+            $results[$useListId] = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner)])->get(['id' =>$useListId]);
+        else {
+            $lists = \Injector::inst()->createWithArgs($this->listsHandler, [Utilities::env_value('APIKey', $this->owner)])->get();
+            $allowed = Utilities::csv_to_array(Utilities::env_value('AllowedLists'));
+
+            foreach($lists as $list) {
+                if (isset($list['id']) && in_array($list['id'], $allowed)) {
+                    $results[$list['id']] = \Injector::inst()->createWithArgs(
+                        $this->handler,
+                        [Utilities::env_value('APIKey', $this->owner)]
+                    )->get(['id' => $list['id']]);
+                }
+            }
+        }
+
+        $existing = array();
+
+        foreach ($results as $listId => $items) {
+            if(count($items)) {
+                $subscribed = [];
+                $list = \ExtList::get()->filter(['ExtId' => $listId])->first();
+
+                foreach($items as $item) {
+                    $existing[] = $subscribed[] = $item['id'];
+
+                    $record = $this->owner->findOrMake(['EUId' => $item['id'], $this->emailField => $item['email']], $item);
+                    \Injector::inst()->get($this->manager)->applyExternalVars($record, $item);
+                    $record->write();
+
+                    if($list)
+                        $record->Lists()->add($list, $record->ExtraDataOnSubscription($item));
+                }
+
+                if($list) {
+                    $list->getManyManyComponents($this->relation())->exclude('EUId', $subscribed)->removeAll();
+                }
+            }
+        }
+
+        if($deleteNonExisting)
+            $this->owner->get()->exclude('EUId', $existing)->removeAll();
+    }
+
+    public function subscribeToExternalList($params = [], $addLocally = false) {
         if($this->owner->{$this->emailField} || isset($params['email'])) {
 	        if(!isset($params['email']))
 		        $params['email'] = $this->owner->{$this->emailField};
@@ -91,12 +178,14 @@ class Subscriber extends \DataExtension {
 	            $params
             );
 
-            $leid = isset($email['leid']) ? $email['leid'] : '';
-            $this->owner->addToExternalLists($leid);
+            if($addLocally) {
+                $leid = isset($email['leid']) ? $email['leid'] : '';
+                $this->owner->addToExternalLists($leid);
+            }
         }
     }
 
-    public function unsubscribeFromExternalList($params = []) {
+    public function unsubscribeFromExternalList($params = [], $removeLocally = false) {
 	    if($this->owner->{$this->emailField} || isset($params['email'])) {
 		    if(!isset($params['email']))
 			    $params['email'] = $this->owner->{$this->emailField};
@@ -110,8 +199,10 @@ class Subscriber extends \DataExtension {
 			    $params
 		    );
 
-		    $listId = isset($params['id']) ? $params['id'] : '';
-		    $this->owner->removeFromExternalLists($listId);
+            if($removeLocally) {
+                $listId = isset($params['id']) ? $params['id'] : '';
+                $this->owner->removeFromExternalLists($listId);
+            }
 	    }
     }
 
@@ -139,7 +230,7 @@ class Subscriber extends \DataExtension {
             $listsIds = Utilities::csv_to_array($listId);
 
             foreach($listsIds as $listId) {
-                $list = \ExtList::find_or_make(['McId' => $listId]);
+                $list = \ExtList::find_or_make(['ExtId' => $listId]);
 
                 if($this->owner instanceof \DataObject)
                     $this->owner->Lists()->add($list, ['Subscribed' => \SS_Datetime::now()->Rfc2822(), 'LEId' => $leid]);
@@ -152,12 +243,23 @@ class Subscriber extends \DataExtension {
             $listsIds = Utilities::csv_to_array($listId);
 
             foreach($listsIds as $listId) {
-                $list = \ExtList::find_or_make(['McId' => $listId]);
+                $list = \ExtList::find_or_make(['ExtId' => $listId]);
 
                 if($this->owner instanceof \DataObject)
                     $this->owner->Lists()->remove($list);
             }
         }
+    }
+
+    public function ExtraDataOnSubscription($response = []) {
+        $extraData = [
+            'Subscribed' => \SS_Datetime::now()->Rfc2822(),
+            'LEId' => isset($response['leid']) ? $response['leid'] : '',
+        ];
+
+        $this->owner->extend('updateExtraDataOnSubscription', $extraData, $response);
+
+        return $extraData;
     }
 
     protected function getMergeVars() {
@@ -170,5 +272,12 @@ class Subscriber extends \DataExtension {
         }
 
         return $vars;
+    }
+
+    protected function relation() {
+        if(!$this->relation)
+            $this->relation = get_class($this->owner);
+
+        return $this->relation;
     }
 }

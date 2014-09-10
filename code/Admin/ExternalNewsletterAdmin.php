@@ -21,6 +21,7 @@ class ExtNewsletterAdmin extends ModelAdmin
 	private static $managed_models = [
 		'ExtCampaign',
 		'ExtList',
+        'ExtSubscriber',
 	];
 
 	public function alternateAccessCheck()
@@ -30,13 +31,26 @@ class ExtNewsletterAdmin extends ModelAdmin
 
 	public function getEditForm($id = null, $fields = null) {
 		$this->beforeExtending('updateEditForm', function(Form $form) {
-			if($lists = $form->Fields()->fieldByName($this->sanitiseClassName('ExtList'))) {
-				singleton('ExtList')->sync();
+                if(!Utilities::env_value('NoListSync') && $lists = $form->Fields()->fieldByName($this->sanitiseClassName('ExtList'))) {
+                    singleton('ExtList')->sync();
+                }
 
-				$lists->Config->addComponents(
-					new GridFieldAjaxRefresh(10000)
-				);
-			}
+                if($subscribers = $form->Fields()->fieldByName($this->sanitiseClassName('ExtSubscriber'))) {
+                    singleton('ExtSubscriber')->sync();
+
+                    $subscribers->Config->addComponents(
+                        new GridFieldAjaxRefresh(20000)
+                    );
+
+                    if($detailForm = $subscribers->Config->getComponentByType('GridFieldDetailForm')) {
+                        $detailForm->setItemEditFormCallback(function($form, $controller) {
+                                if(!$controller->record->ID && \ExtList::get()->where('ExtId IS NOT NULL')->exists()) {
+                                    $form->Fields()->insertBefore(\CheckboxSetField::create('ExtListId', _t('ExternalNewsletter.ExtListId', 'Select list(s) to subscribe the user to'), \ExtList::get()->where('ExtId IS NOT NULL')->map('ExtId', 'Title')->toArray(), \ExtList::get()->where('ExtId IS NOT NULL')->column('ExtId')), 'FirstName');
+                                }
+                            }
+                        );
+                    }
+                }
 		});
 
 		return parent::getEditForm($id, $fields);
@@ -44,11 +58,13 @@ class ExtNewsletterAdmin extends ModelAdmin
 
 	public function getList() {
 		$this->beforeExtending('updateList', function($list) {
-			if($listIds = Utilities::env_value('AllowedLists')) {
-				$listsIds = Utilities::csv_to_array($listIds);
+                if($this->modelClass == get_class(singleton('ExtList'))) {
+                    if ($listIds = Utilities::env_value('AllowedLists')) {
+                        $listsIds = Utilities::csv_to_array($listIds);
 
-				$list->filter('ExtId', $listsIds);
-			}
+                        $list->filter('ExtId', $listsIds);
+                    }
+                }
 		});
 
 		return parent::getList();

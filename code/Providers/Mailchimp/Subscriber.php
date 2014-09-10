@@ -12,8 +12,14 @@ class Subscriber extends JSON implements \Milkyway\SS\ExternalNewsletter\Contrac
     public function get($params = []) {
         $response = $this->results('lists/members', $params);
 
-        if(isset($response['data']))
+        if(isset($response['data'])) {
+            foreach($response['data'] as $email) {
+                if(isset($email['euid']))
+                    $email['id'] = $email['euid'];
+            }
+
             return $response['data'];
+        }
 
         return [];
     }
