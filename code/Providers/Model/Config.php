@@ -20,7 +20,8 @@ abstract class Config implements \Milkyway\SS\ExternalNewsletter\Contracts\Confi
             'DefaultLists'         => 'default_lists',
             'DefaultParams'        => 'default_params',
             'DefaultGroups'        => 'default_groups',
-            'NoListSync'            => 'no_list_sync',
+            'NoListSync'           => 'no_list_sync',
+            'GlobalSubscribeForm'           => 'global_subscribe_form',
         ];
     }
 } 

@@ -47,16 +47,16 @@ class Utilities implements \PermissionProvider {
 	        if(!$value && $object)
 		        $value = $object->config()->{$mapping[$setting]};
 
-            if (!$value) {
-                $value = static::config()->$envSetting;
-            }
-
             if (!$value && \ClassInfo::exists('SiteConfig')) {
                 if (\SiteConfig::current_site_config()->$dbSetting) {
                     $value = \SiteConfig::current_site_config()->$dbSetting;
                 } elseif (\SiteConfig::config()->$envSetting) {
                     $value = \SiteConfig::config()->$envSetting;
                 }
+            }
+
+            if (!$value) {
+                $value = static::config()->$envSetting;
             }
 
             if (!$value) {

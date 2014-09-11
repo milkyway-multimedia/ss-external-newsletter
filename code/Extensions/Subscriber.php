@@ -76,6 +76,19 @@ class Subscriber extends \DataExtension {
 	    }
     }
 
+    public function updateFrontEndFields(\FieldList $fields) {
+        $fields->removeByName('EUId');
+
+        if($firstName = $fields->fieldByName('FirstName')) {
+            $fields->removeByName('Surname');
+            $firstName->setName('Name')->setTitle(_t('ExternalNewsletter.NAME', 'Name'));
+        }
+
+        if($email = $fields->fieldByName('Email')) {
+            $fields->replaceField('Email', $email->castedCopy('EmailField'));
+        }
+    }
+
     public function onAfterManyManyRelationAdd($list, &$extraFields) {
         if($list && $list->dataClass() == get_class(singleton('ExtList'))) {
             if($this->owner->ExtListId)
@@ -307,6 +320,23 @@ class Subscriber extends \DataExtension {
         $this->owner->extend('updateExtraDataOnSubscription', $extraData, $response);
 
         return $extraData;
+    }
+
+    public function getFrontEndActions() {
+        $actions = \FieldList::create();
+        $this->owner->extend('updateFrontEndActions', $actions);
+        return $actions;
+    }
+
+    public function getFrontEndValidator() {
+        if(\ClassInfo::exists('ZenValidator')) {
+            $validator = \ZenValidator::create()->addRequiredFields([$this->emailField]);
+        }
+        else
+            $validator = \RequiredFields::create([$this->emailField]);
+
+        $this->owner->extend('updateFrontEndValidator', $validator);
+        return $validator;
     }
 
     protected function getMergeVars() {
