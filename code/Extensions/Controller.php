@@ -56,10 +56,10 @@ class Controller extends \Extension {
         if($vars['success'])
             $vars['message'] = 'You are now subscribed to our mailing list';
 
-        return $this->respond($vars, $form);
+        return $this->respondAccordingly($vars, $form);
     }
 
-    protected function respond($params, $form = null){
+    protected function respondAccordingly($params, $form = null){
         if($this->owner->Request->isAjax()) {
             $code = isset($params['success']) ? 200 : 400;
             $status = isset($params['success']) ? 'success' : 'fail';
@@ -75,6 +75,8 @@ class Controller extends \Extension {
 
             if(!$this->owner->redirectedTo())
                 $this->owner->redirectBack();
+
+	        return true;
         }
     }
 } 
