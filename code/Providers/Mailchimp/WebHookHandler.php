@@ -59,7 +59,7 @@ class WebHookHandler
                 $event = $this->eventMapping[$event];
             }
 
-            if (\ClassInfo::exists('Milkyway\SS\Events\Dispatche')) {
+            if (\ClassInfo::exists('Milkyway\SS\Events\Dispatcher')) {
                 if($event == 'whitelisted' && Utilities::env_value('whitelist_emails_on_subscribe')) {
 	                \Injector::inst()->get('Milkyway\SS\Events\Dispatcher')->fire('SendThis', 'whitelisted', $messageId, $email, $params, $response);
 	                \Injector::inst()->get('Milkyway\SS\Events\Dispatcher')->fire('ExternalNewsletter', 'whitelisted', $messageId, $email, $params, $response);
