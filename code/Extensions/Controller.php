@@ -27,7 +27,7 @@ class Controller extends \Extension {
         $fields->push($ml = SubscribeFormField::create('MailingLists', '', \ExtList::get()));
 
         if(!$actions->exists())
-            $actions->push(\FormAction::create('subscribeExternal', _t('ExternalNewsletter.SUBSCRIBE', 'Subscribe'))->addExtraClass('btn-majorAction'));
+            $actions->push(\FormAction::create('subscribeExternal', _t('ExternalNewsletter.SUBSCRIBE', 'Subscribe'))->addExtraClass('btn-primary'));
 
         $form = \Object::create($formClass, $this->owner, 'GlobalSubscribeForm', $fields, $actions, singleton('ExtSubscriber')->FrontEndValidator);
         $this->owner->extend('updateGlobalSubscribeForm', $form);
