@@ -44,17 +44,6 @@ class Subscriber extends \DataExtension {
         return null;
     }
 
-    public function findOrMake($filter = [], $data = [])
-    {
-        if (!($item = $this->owner->get()->filter($filter)->first())) {
-            $item = $this->owner->create(array_merge($filter, $data));
-            $item->write();
-            $item->isNew = true;
-        }
-
-        return $item;
-    }
-
     public function updateCMSFields(\FieldList $fields) {
         if($this->owner->EUId) {
             if(!\Permission::check('ADMIN')) {
@@ -68,18 +57,31 @@ class Subscriber extends \DataExtension {
                     )
                 );
             }
+	        elseif($euid = $fields->dataFieldByName('EUId')) {
+		        $euid->setDescription(
+			        _t(
+				        'ExternalNewsletter.DESC-EUId',
+				        'This is the ID of this subscriber that it is tracking on your mailing list provider.'
+			        )
+		        );
+	        }
         }
         else
             $fields->removeByName('EUId');
+
+	    $fields->removeByName('Lists');
+
+	    if($this->owner->ID && \ExtList::get()->where('ExtId IS NOT NULL')->exists()) {
+		    $fields->insertBefore(\CheckboxSetField::create('Lists', _t('ExternalNewsletter.Lists', 'List(s)'), \ExtList::get()->where('ExtId IS NOT NULL')->toArray(), $this->owner->Lists()->column('ID')), 'FirstName');
+	    }
     }
 
     public function onAfterManyManyRelationAdd($list, &$extraFields) {
         if($list && $list->dataClass() == get_class(singleton('ExtList'))) {
             if($this->owner->ExtListId)
                 $listId = $this->owner->ExtListId;
-            else {
+            else
                 $listId = \DataList::create($list->dataClass())->byId($list->getForeignID())->ExtId;
-            }
 
             if($listId)
                 $this->owner->subscribeToExternalList(['list' => $listId]);
@@ -99,16 +101,53 @@ class Subscriber extends \DataExtension {
         }
     }
 
+	public function onBeforeWrite() {
+		if($this->owner->ExtListId)
+			$this->owner->subscribeToExternalList(['list' => $this->owner->ExtListId]);
+	}
+
+	public function onAfterDelete() {
+		if($this->owner->ExtListId)
+			$this->owner->unsubscribeFromExternalList(['list' => $this->owner->ExtListId]);
+	}
+
+	public function validate(\ValidationResult $result) {
+		if($email = $this->owner->{$this->emailField}) {
+			if(!\Email::is_valid_address($email))
+				$result->error(_t('ExternalNewsletter.INVALID_EMAIL', '{email} is not a valid email address', ['name' => $this->emailField, 'email' => $email]));
+
+			$check = $this->owner->get()->filter($this->emailField, $email);
+
+			if ($this->owner->ID)
+				$check = $check->exclude('ID', $this->owner->ID);
+
+			if ($check->exists()) {
+				$result->error(_t('ExternalNewsletter.EMAIL_EXISTS', '{name}: {email} already exists in database', ['name' => $this->emailField, 'email' => $email]));
+			}
+		}
+	}
+
+	public function findOrMake($filter = [], $data = []) {
+		if (!($item = $this->owner->get()->filter($filter)->first())) {
+			$item = $this->owner->create(array_merge($filter, $data));
+			$item->write();
+			$item->isNew = true;
+		}
+
+		return $item;
+	}
+
     public function fromExternalList($listId, $cache = true) {
         $list = \ArrayList::create();
         $class = get_class($this->owner);
 
         $result = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner), $cache ? 2 : 0])->get(['id' =>$listId]);
+		$manager = \Injector::inst()->get($this->manager);
 
         foreach($result as $item) {
             $record = \Object::create($class, $item);
 
-	        \Injector::inst()->get($this->manager)->applyExternalVars($record, $item);
+	        $manager->applyExternalVars($record, $item);
 
             $record->ExtListId = $listId;
 
@@ -119,9 +158,11 @@ class Subscriber extends \DataExtension {
     }
 
     public function sync($useListId = '', $deleteNonExisting = false) {
+	    $results = [];
+
         // Sync with External Subscriber Database
         if($useListId)
-            $results[$useListId] = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner)])->get(['id' =>$useListId]);
+            $results[$useListId] = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner), 0])->get(['id' =>$useListId]);
         else {
             $lists = \Injector::inst()->createWithArgs($this->listsHandler, [Utilities::env_value('APIKey', $this->owner)])->get();
             $allowed = Utilities::csv_to_array(Utilities::env_value('AllowedLists'));
@@ -130,13 +171,13 @@ class Subscriber extends \DataExtension {
                 if (isset($list['id']) && in_array($list['id'], $allowed)) {
                     $results[$list['id']] = \Injector::inst()->createWithArgs(
                         $this->handler,
-                        [Utilities::env_value('APIKey', $this->owner)]
+                        [Utilities::env_value('APIKey', $this->owner), 0]
                     )->get(['id' => $list['id']]);
                 }
             }
         }
 
-        $existing = array();
+        $existing = [];
 
         foreach ($results as $listId => $items) {
             if(count($items)) {
@@ -169,18 +210,21 @@ class Subscriber extends \DataExtension {
 	        if(!isset($params['email']))
 		        $params['email'] = $this->owner->{$this->emailField};
 
-            if(!isset($params['list']))
-                $params['list'] = $this->owner->ExtListId ? $this->owner->ExtListId : $this->owner->ExternalListID;
+	        if(!isset($params['list']))
+		        $params['list'] = $this->owner->ExtListIds;
 
-            $email = \Injector::inst()->get($this->manager)->subscribe(
-	            \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner)]),
-	            $this->owner,
-	            $params
-            );
+	        $manager = \Injector::inst()->get($this->manager);
+	        $handler = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner), 0]);
+	        $lists = Utilities::csv_to_array($params['list']);
+
+	        foreach ($lists as $list) {
+		        $params['list'] = $list;
+		        $manager->subscribe($handler, $this->owner, $params);
+	        }
 
             if($addLocally) {
                 $leid = isset($email['leid']) ? $email['leid'] : '';
-                $this->owner->addToExternalLists($leid);
+                $this->owner->addToExternalLists($leid, $lists);
             }
         }
     }
@@ -191,26 +235,55 @@ class Subscriber extends \DataExtension {
 			    $params['email'] = $this->owner->{$this->emailField};
 
             if(!isset($params['list']))
-                $params['list'] = $this->owner->ExtListId ? $this->owner->ExtListId : $this->owner->ExternalListID;
+	            $params['list'] = $this->owner->ExtListIds;
 
-		   \Injector::inst()->get($this->manager)->unsubscribe(
-			    \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner)]),
-			    $this->owner,
-			    $params
-		    );
+		    $manager = \Injector::inst()->get($this->manager);
+		    $handler = \Injector::inst()->createWithArgs($this->handler, [Utilities::env_value('APIKey', $this->owner), 0]);
+			$lists = Utilities::csv_to_array($params['list']);
 
-            if($removeLocally) {
-                $listId = isset($params['id']) ? $params['id'] : '';
-                $this->owner->removeFromExternalLists($listId);
-            }
+		    foreach ($lists as $list) {
+			    $params['list'] = $list;
+			    $manager->unsubscribe($handler, $this->owner, $params);
+		    }
+
+            if($removeLocally)
+                $this->owner->removeFromExternalLists($lists);
 	    }
     }
 
-    public function getExternalListID() {
-        return Utilities::env_value('DefaultLists', $this->owner);
-    }
+	public function addToExternalLists($leid = '', $lists = null) {
+		if(!$lists)
+			$lists = $this->owner->ExtListIds;
 
-    public function getMailchimpListParams() {
+		$lists = Utilities::csv_to_array($lists);
+
+		foreach($lists as $listId) {
+			$list = singleton($this->owner->Lists()->dataClass())->findOrMake(['ExtId' => $listId]);
+
+			if($this->owner instanceof \DataObject)
+				$this->owner->Lists()->add($list, $this->owner->ExtraDataOnSubscription(['leid' => $leid]));
+		}
+	}
+
+	public function removeFromExternalLists($lists) {
+		if(!$lists)
+			$lists = $this->owner->ExtListIds;
+
+		$lists = Utilities::csv_to_array($lists);
+
+		foreach($lists as $listId) {
+			$list = singleton($this->owner->Lists()->dataClass())->findOrMake(['ExtId' => $listId]);
+
+			if($this->owner instanceof \DataObject)
+				$this->owner->Lists()->remove($list);
+		}
+	}
+
+	public function getDefaultExternalListID() {
+		return Utilities::env_value('DefaultLists', $this->owner);
+	}
+
+    public function ListParams($type = 'mailchimp') {
         $params = [];
 
         $vars = $this->getMergeVars();
@@ -221,34 +294,8 @@ class Subscriber extends \DataExtension {
         return array_merge((array)Utilities::env_value('DefaultParams', $this->owner), $params);
     }
 
-    public function getMailchimpInterestGroups() {
-        return Utilities::env_value('Mailchimp_DefaultGroups', $this->owner);
-    }
-
-    public function addToExternalLists($leid = '') {
-        if($listId = $this->owner->ExternalListID) {
-            $listsIds = Utilities::csv_to_array($listId);
-
-            foreach($listsIds as $listId) {
-                $list = \ExtList::find_or_make(['ExtId' => $listId]);
-
-                if($this->owner instanceof \DataObject)
-                    $this->owner->Lists()->add($list, ['Subscribed' => \SS_Datetime::now()->Rfc2822(), 'LEId' => $leid]);
-            }
-        }
-    }
-
-    public function removeFromExternalLists() {
-        if($listId = $this->owner->ExternalListID) {
-            $listsIds = Utilities::csv_to_array($listId);
-
-            foreach($listsIds as $listId) {
-                $list = \ExtList::find_or_make(['ExtId' => $listId]);
-
-                if($this->owner instanceof \DataObject)
-                    $this->owner->Lists()->remove($list);
-            }
-        }
+    public function InterestGroups($type = 'mailchimp') {
+        return Utilities::env_value('DefaultGroups', $this->owner);
     }
 
     public function ExtraDataOnSubscription($response = []) {
@@ -273,6 +320,19 @@ class Subscriber extends \DataExtension {
 
         return $vars;
     }
+
+	protected function getExtListIds() {
+		$list = $this->owner->ExtListId;
+
+		if(!$list) {
+			$list = $this->owner->Lists()->where('ExtId IS NOT NULL')->column('ExtId');
+
+			if(!count($list))
+				$list = Utilities::csv_to_array($this->owner->DefaultExternalListId);
+		}
+
+		return $list;
+	}
 
     protected function relation() {
         if(!$this->relation)

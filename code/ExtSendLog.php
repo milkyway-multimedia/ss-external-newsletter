@@ -17,7 +17,7 @@ class ExtSendLog extends DataObject
 	private static $description = 'This is a log for sending a campaign. You can send the same campaign to many different lists etc.';
 
 	private static $db = [
-		'Status'     => "Enum('save,paused,scheduled,sending,sent')",
+		'Status'     => "Enum('save,test,paused,scheduled,sending,sent')",
 		'ExtId'       => 'Varchar',
 		'ExtSlug'    => 'Varchar',
 
@@ -168,7 +168,7 @@ class ExtSendLog extends DataObject
 			$listName = '';
 		}
 
-		$this->ListID = \ExtList::find_or_make(['ExtId' => $listId], ['Title' => $listName])->ID;
+		$this->ListID = $this->List()->findOrMake(['ExtId' => $listId], ['Title' => $listName])->ID;
 	}
 
 	public function getMailingListID()

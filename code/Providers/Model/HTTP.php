@@ -78,6 +78,7 @@ abstract class HTTP {
 
     protected function results($action, $params = []) {
         $cacheKey = $this->getCacheKey($params);
+	    $body = [];
 
         if(!$this->cacheLifetime || !($body = unserialize($this->cache($action)->load($cacheKey)))) {
             $params = array_merge($this->params(), $params);
@@ -98,6 +99,9 @@ abstract class HTTP {
 
             if($response && !$this->isError($response)) {
                 $body = $this->parseResponse($response);
+
+	            if($action != 'lists/members')
+		            \debug::log(print_r($body, true));
 
                 if(!$this->isValid($body))
                     throw new HTTP_Exception($response, sprintf('Data not received from %s. Please check your credentials.', $this->endpoint()));

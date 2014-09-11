@@ -6,3 +6,5 @@ After:
 Injector:
   ManyManyList:
     class: Milkyway\SS\ExternalNewsletter\Extensions\ManyManyList
+  Heyday\CacheInclude\SilverStripe\ManyManyList:
+    class: Milkyway\SS\ExternalNewsletter\Extensions\ManyManyList

@@ -25,9 +25,9 @@ class SubscriberManager implements \Milkyway\SS\ExternalNewsletter\Contracts\Sub
 			$email = $handler->subscribe(
 				array_merge([
 					'list' => $this->getListIdFromRecord($subscriber),
-					'groups' => $subscriber->MailchimpInterestGroups,
+					'groups' => $subscriber->InterestGroups(Utilities::using()),
 					'double_optin' => Utilities::env_value('DoubleOptIn', $subscriber),
-				], $params), $subscriber->MailchimpListParams
+				], $params), $subscriber->ListParams(Utilities::using())
 			);
 
 			if(isset($email['euid']))
@@ -44,7 +44,7 @@ class SubscriberManager implements \Milkyway\SS\ExternalNewsletter\Contracts\Sub
 			$handler->unsubscribe(
 				array_merge([
 					'list' => $this->getListIdFromRecord($subscriber),
-				], $params), $subscriber->MailchimpListParams
+				], $params), $subscriber->ListParams(Utilities::using())
 			);
 		}
 	}

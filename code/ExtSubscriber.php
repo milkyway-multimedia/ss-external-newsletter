@@ -16,10 +16,16 @@ class ExtSubscriber extends \DataObject {
         'Email' => 'Varchar',
     );
 
-    private static $summary_fields = [
-        'Name',
-        'Email',
-    ];
+	private static $summary_fields = [
+		'Name',
+		'Email',
+	];
+
+	private static $searchable_fields = [
+		'FirstName' => 'PartialMatchFilter',
+		'Surname' => 'PartialMatchFilter',
+		'Email' => 'PartialMatchFilter',
+	];
 
     private static $mailchimp_merge_vars = [
         'FirstName' => 'FNAME',
@@ -50,22 +56,6 @@ class ExtSubscriber extends \DataObject {
 
     public function getTitle(){
         return $this->ForEmail;
-    }
-
-    public function onBeforeWrite() {
-        parent::onBeforeWrite();
-
-        $params = [];
-
-        if(!$this->ID)
-            $params['double_optin'] = $this->DoubleOptIn;
-
-        $this->subscribeToExternalList($params);
-    }
-
-    public function onBeforeDelete() {
-        parent::onBeforeDelete();
-        $this->unsubscribeFromExternalList();
     }
 
     public function getMailchimpMergeVars() {
@@ -115,8 +105,10 @@ class ExtSubscriber extends \DataObject {
         $extraData = [
             'Subscribed' => \SS_Datetime::now()->Rfc2822(),
             'LEId' => isset($response['leid']) ? $response['leid'] : '',
-            'DoubleOptIn' => $this->DoubleOptIn,
         ];
+
+	    if($this->DoubleOptIn !== null)
+		    $extraData['DoubleOptIn'] = $this->DoubleOptIn;
 
         $this->extend('updateExtraDataOnSubscription', $extraData, $response);
 

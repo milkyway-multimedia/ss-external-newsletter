@@ -125,10 +125,12 @@ class ExtList extends DataObject
            && ($includeRelations === true || isset($includeRelations['many_many']))) {
 
             foreach($this->many_many() as $relationship => $component) {
+	            $label = $relationship == 'ExtSubscriber' ? 'AllEmails' : $relationship;
+
                 if($fs->tabbed) {
                     $relationTab = $fields->findOrMakeTab(
-                        "Root.$relationship",
-                        $this->fieldLabel($relationship)
+                        "Root.$label",
+                        $this->fieldLabel($label)
                     );
                 }
 
@@ -138,12 +140,13 @@ class ExtList extends DataObject
 
                 $grid = Object::create($fieldClass,
                     $relationship,
-                    $this->fieldLabel($relationship),
+	                $this->fieldLabel($label),
                     $this->getManyManyComponents($relationship),
                     GridFieldConfig_RelationEditor::create()
                 );
+
                 if($fs->tabbed) {
-                    $fields->addFieldToTab("Root.$relationship", $grid);
+                    $fields->addFieldToTab("Root.$label", $grid);
                 } else {
                     $fields->push($grid);
                 }

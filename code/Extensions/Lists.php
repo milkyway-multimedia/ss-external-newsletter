@@ -63,22 +63,28 @@ class Lists extends \DataExtension {
         $dataFields = $fields->dataFields();
         $self = $this->owner;
         $callback = function($form, $controller) use ($self) {
-            if(!$controller->record->ID) {
-                $form->Fields()->insertBefore(
-                    \CheckboxSetField::create(
-                        'ExtListId',
-                        _t('ExternalNewsletter.ExtListId', 'Select list(s) to subscribe the user to'),
-                        \ExtList::get()->map('ExtId', 'Title')->toArray(),
-                        [$self->ExtId]
-                    ),
-                    'FirstName'
-                );
+            if($lists = $form->Fields()->dataFieldByName('Lists')) {
+	            $form->Fields()->replaceField('Lists', $lists->castedCopy('ReadonlyField')->setName('Lists_Readonly')->setValue(implode(', ', $controller->record->Lists()->column('Title'))));
             }
         };
 
+	    $time = 20000;
+
         foreach($dataFields as $field) {
             if(($field instanceof \GridField) && $detailForm = $field->Config->getComponentByType('GridFieldDetailForm')) {
-                $detailForm->setItemEditFormCallback($callback);
+	            $item = singleton($field->List->dataClass());
+
+	            if($item->hasExtension('Milkyway\SS\ExternalNewsletter\Extensions\Subscriber')) {
+		            $item->sync();
+
+		            $field->Config->addComponents(
+			            new \GridFieldAjaxRefresh($time)
+		            );
+
+		            $detailForm->setItemEditFormCallback($callback);
+
+		            $time += 5000;
+	            }
             }
         }
     }
