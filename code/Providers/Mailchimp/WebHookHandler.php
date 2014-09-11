@@ -59,15 +59,15 @@ class WebHookHandler
                 $event = $this->eventMapping[$event];
             }
 
-            if (\ClassInfo::exists('Milkyway\SS\EventDispatcher')) {
+            if (\ClassInfo::exists('Milkyway\SS\Events\Dispatche')) {
                 if($event == 'whitelisted' && Utilities::env_value('whitelist_emails_on_subscribe')) {
-                    \Milkyway\SS\EventDispatcher::inst()->fire('SendThis', 'whitelisted', $messageId, $email, $params, $response);
-                    \Milkyway\SS\EventDispatcher::inst()->fire('ExternalNewsletter', 'whitelisted', $messageId, $email, $params, $response);
+	                \Injector::inst()->get('Milkyway\SS\Events\Dispatcher')->fire('SendThis', 'whitelisted', $messageId, $email, $params, $response);
+	                \Injector::inst()->get('Milkyway\SS\Events\Dispatcher')->fire('ExternalNewsletter', 'whitelisted', $messageId, $email, $params, $response);
                 }
 
                 if($event == 'blacklisted' && Utilities::env_value('blacklist_emails_on_unsubscribe')) {
-                    \Milkyway\SS\EventDispatcher::inst()->fire('SendThis', 'blacklisted', $messageId, $email, $params, $response);
-                    \Milkyway\SS\EventDispatcher::inst()->fire('ExternalNewsletter', 'blacklisted', $messageId, $email, $params, $response);
+	                \Injector::inst()->get('Milkyway\SS\Events\Dispatcher')->fire('SendThis', 'blacklisted', $messageId, $email, $params, $response);
+	                \Injector::inst()->get('Milkyway\SS\Events\Dispatcher')->fire('ExternalNewsletter', 'blacklisted', $messageId, $email, $params, $response);
                 }
             }
         }
@@ -75,9 +75,9 @@ class WebHookHandler
 
     protected function confirmSubscription($message)
     {
-        if (\ClassInfo::exists('Milkyway\SS\EventDispatcher')) {
-            \Milkyway\SS\EventDispatcher::inst()->fire('SendThis', 'hooked', '', '', ['subject' => 'Subscribed to Mailchimp Web Hook', 'message' => $message]);
-            \Milkyway\SS\EventDispatcher::inst()->fire('ExternalNewsletter', 'hooked', '', '', ['subject' => 'Subscribed to Mailchimp Web Hook', 'message' => $message]);
+        if (\ClassInfo::exists('Milkyway\SS\Events\Dispatcher')) {
+	        \Injector::inst()->get('Milkyway\SS\Events\Dispatcher')->fire('SendThis', 'hooked', '', '', ['subject' => 'Subscribed to Mailchimp Web Hook', 'message' => $message]);
+	        \Injector::inst()->get('Milkyway\SS\Events\Dispatcher')->fire('ExternalNewsletter', 'hooked', '', '', ['subject' => 'Subscribed to Mailchimp Web Hook', 'message' => $message]);
         }
 
         return new \SS_HTTPResponse('', 200, 'success');
