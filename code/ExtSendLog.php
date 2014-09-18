@@ -23,11 +23,14 @@ class ExtSendLog extends DataObject
 
 		'Sent'       => 'Datetime',
 		'NumberSent' => 'Int',
+
+		'Extras'     => 'Text',
 	];
 
 	private static $has_one = [
 		'Campaign' => 'ExtCampaign',
 		'Author'   => 'Member',
+		'Sender'   => 'Member',
 		'List'     => 'ExtList',
 	];
 
@@ -58,6 +61,9 @@ class ExtSendLog extends DataObject
 					$fields->insertBefore(\FormMessageField::create('NO-CAMPAIGNS', _t('ExternalNewsletter.ERROR-NO_CAMPAIGNS', 'You have not added an email campaign to send yet. <a href="{cmsLink}">Create one now</a>.', ['cmsLink' => singleton('ExtNewsletterAdmin')->Link()]), 'warning')->cms(), 'Status');
 					$fields->removeByName('CampaignID');
 				}
+				elseif(!ExtList::get()->exists()) {
+					$fields->insertBefore(\FormMessageField::create('NO-LISTS', _t('ExternalNewsletter.ERROR-NO_LISTS', 'There are no lists to send this email campaign to yet. <a href="{cmsLink}">Create one now</a>.', ['cmsLink' => singleton('ExtNewsletterAdmin')->Link()]), 'warning')->cms(), 'Status');
+				}
 
 				if (!$this->ExtId)
 					$fields->removeByName('ExtId');
@@ -75,11 +81,22 @@ class ExtSendLog extends DataObject
 					$fields->removeByName('Sent');
 
 				$fields->removeByName('AuthorID');
-				$fields->removeByName('ListID');
+
+				if($this->ListID && $lists = $fields->dataFieldByName('ListID'))
+					$fields->replaceField('ListID', $lists->performReadonlyTransformation()->setName('ListID'));
 			}
 		);
 
 		return parent::getCMSFields();
+	}
+
+	protected function validate() {
+		$this->beforeExtending('validate', function(\ValidationResult $result) {
+			if(!$this->ListID)
+				$result->error(_t('ExternalNewsletter.ERROR-NO_LIST_TO_SEND_TO', 'Please select a list to send to'));
+		});
+
+		return parent::validate();
 	}
 
 	public function canEdit($member = null)
@@ -174,5 +191,15 @@ class ExtSendLog extends DataObject
 	public function getMailingListID()
 	{
 		return $this->List()->ExtId . '|' . $this->List()->Title;
+	}
+
+	public function getDetails()
+	{
+		return unserialize($this->Extras);
+	}
+
+	public function setDetails($details)
+	{
+		$this->Extras = serialize($details);
 	}
 }

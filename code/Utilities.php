@@ -97,7 +97,7 @@ class Utilities implements \PermissionProvider {
         return array(
             'MAILING_LISTS_CREATE' => array(
                 'name' => _t('ExternalNewsletter.PERMISSION-MAILING_LISTS_CREATE', 'Can create new mailing lists'),
-                'category' => _t('ExternalNewsletter.PERMISSION-CATEGORY', singleton('ExternalNewsletterAdmin')->Title),
+                'category' => _t('ExternalNewsletter.PERMISSION-CATEGORY', singleton('ExtNewsletterAdmin')->Title),
             )
         );
     }

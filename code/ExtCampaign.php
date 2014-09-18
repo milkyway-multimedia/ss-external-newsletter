@@ -44,6 +44,13 @@ class ExtCampaign extends DataObject
 
 				if (!$this->exists())
 					$fields->insertBefore(FormMessageField::create('NOTE-UNSAVED', 'You can start sending this campaign and testing it once it has been saved', 'info')->cms(), 'Subject');
+
+				if(($sent = $fields->dataFieldByName('Sent')) && ($sent instanceof \GridField)) {
+					$sent->Config->removeComponentsByType('GridFieldAddExistingAutocompleter');
+
+					if($addButton = $sent->Config->getComponentByType('GridFieldAddNewButton'))
+						$addButton->setButtonName(_t('ExternalNewsletter.SEND_THIS_CAMPAIGN', 'Send this campaign to a list'));
+				}
 			}
 		);
 
