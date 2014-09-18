@@ -71,7 +71,7 @@ class ExtSendLog extends DataObject
 				if (!$this->ExtSlug)
 					$fields->removeByName('ExtSlug');
 
-				if (!$this->Status)
+				//if (!$this->Status)
 					$fields->removeByName('Status');
 
 				if (!$this->NumberSent)
