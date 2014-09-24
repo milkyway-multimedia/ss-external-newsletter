@@ -31,6 +31,11 @@ class ExtNewsletterAdmin extends ModelAdmin
 
 	public function getEditForm($id = null, $fields = null) {
 		$this->beforeExtending('updateEditForm', function(Form $form) {
+			if($campaigns = $form->Fields()->fieldByName($this->sanitiseClassName('ExtCampaign'))) {
+				if($addButton = $campaigns->Config->getComponentByType('GridFieldAddNewButton'))
+					$addButton->setButtonName(_t('ExternalNewsletter.START_CAMPAIGN', 'Start campaign'));
+			}
+
                 if(!Utilities::env_value('NoListSync') && $lists = $form->Fields()->fieldByName($this->sanitiseClassName('ExtList'))) {
                     singleton('ExtList')->sync();
                 }

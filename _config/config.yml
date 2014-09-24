@@ -10,6 +10,8 @@ Injector:
     class: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\Lists'
   'Milkyway\SS\ExternalNewsletter\Contracts\Subscriber':
     class: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\Subscriber'
+  'Milkyway\SS\ExternalNewsletter\Contracts\Template':
+    class: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\Template'
 
   'Milkyway\SS\ExternalNewsletter\Contracts\SubscriberManager':
     class: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\SubscriberManager'

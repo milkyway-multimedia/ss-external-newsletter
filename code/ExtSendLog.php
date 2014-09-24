@@ -48,9 +48,6 @@ class ExtSendLog extends DataObject
 	protected $handler = 'Milkyway\SS\ExternalNewsletter\Contracts\Campaign';
 	protected $manager = 'Milkyway\SS\ExternalNewsletter\Contracts\CampaignManager';
 
-	private $updated = false;
-	private $attemptFix = false;
-
 	public function getCMSFields()
 	{
 		// Download external lists before we show the send log form
@@ -99,10 +96,33 @@ class ExtSendLog extends DataObject
 		return parent::validate();
 	}
 
+	public function canView($member = null)
+	{
+		$this->beforeExtending(__FUNCTION__, function ($member = null) {
+				if(!\Permission::check('NEWSLETTER_MANAGE') && !\Permission::check('NEWSLETTER_VIEW'))
+					return false;
+			}
+		);
+
+		return parent::canView($member);
+	}
+
+	public function canCreate($member = null)
+	{
+		$this->beforeExtending(__FUNCTION__, function ($member = null) {
+				if(!\Permission::check('NEWSLETTER_MANAGE'))
+					return false;
+			}
+		);
+
+		return parent::canCreate($member);
+	}
+
 	public function canEdit($member = null)
 	{
-		$this->beforeExtending(__METHOD__, function ($member = null) {
-				return $this->Status == 'save';
+		$this->beforeExtending(__FUNCTION__, function ($member = null) {
+				if($this->Status != 'save' || !\Permission::check('NEWSLETTER_MANAGE'))
+					return false;
 			}
 		);
 
@@ -111,22 +131,24 @@ class ExtSendLog extends DataObject
 
 	public function canSend($member = null)
 	{
-		$this->beforeExtending(__METHOD__, function ($member = null) {
-				return $this->Status == 'save';
+		$this->beforeExtending(__FUNCTION__, function ($member = null) {
+				if($this->Status != 'save' || !\Permission::check('NEWSLETTER_SEND'))
+					return false;
 			}
 		);
 
-		return parent::canEdit($member);
+		return $this->canEdit($member);
 	}
 
 	public function canDelete($member = null)
 	{
-		$this->beforeExtending(__METHOD__, function ($member = null) {
-				return $this->Status == 'save';
+		$this->beforeExtending(__FUNCTION__, function ($member = null) {
+				if($this->Status != 'save' || !\Permission::check('NEWSLETTER_MANAGE'))
+					return false;
 			}
 		);
 
-		return parent::canEdit($member);
+		return parent::canDelete($member);
 	}
 
 	public function onBeforeWrite()
@@ -135,6 +157,7 @@ class ExtSendLog extends DataObject
 			$this->AuthorID = Member::currentUserID();
 
 		parent::onBeforeWrite();
+		$this->syncUpdate();
 	}
 
 	public function onBeforeDelete()
@@ -175,22 +198,6 @@ class ExtSendLog extends DataObject
 
 			$this->write();
 		}
-	}
-
-	public function saveMailingListID($listId = '')
-	{
-		if (strpos($listId, '|') !== false) {
-			list($listId, $listName) = explode('|', $listId);
-		} else {
-			$listName = '';
-		}
-
-		$this->ListID = $this->List()->findOrMake(['ExtId' => $listId], ['Title' => $listName])->ID;
-	}
-
-	public function getMailingListID()
-	{
-		return $this->List()->ExtId . '|' . $this->List()->Title;
 	}
 
 	public function getDetails()
