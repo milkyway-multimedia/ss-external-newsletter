@@ -2,14 +2,19 @@
 
 /**
  * Milkyway Multimedia
- * Config.php
+ * Driver.php
  *
  * @package relatewell.org.au
  * @author Mellisa Hankins <mell@milkywaymultimedia.com.au>
  */
 
-abstract class Config implements \Milkyway\SS\ExternalNewsletter\Contracts\Config
+use LogicException;
+use Milkyway\SS\ExternalNewsletter\Contracts\Driver as Contract;
+
+abstract class Driver implements Contract
 {
+    protected $services = [];
+
     public function map()
     {
         return [
@@ -21,7 +26,17 @@ abstract class Config implements \Milkyway\SS\ExternalNewsletter\Contracts\Confi
             'DefaultParams'        => 'default_params',
             'DefaultGroups'        => 'default_groups',
             'NoListSync'           => 'no_list_sync',
-            'GlobalSubscribeForm'           => 'global_subscribe_form',
+            'GlobalSubscribeForm'  => 'global_subscribe_form',
         ];
+    }
+
+    public function service($name = '') {
+        if(!$name)
+            return $this->services;
+
+        if(isset($this->services[$name]))
+            return $this->services[$name];
+
+        throw new LogicException(sprintf('%s does not support the service: ' . $name));
     }
 } 

@@ -171,6 +171,8 @@ class Subscriber extends \DataExtension {
     }
 
     public function sync($useListId = '', $deleteNonExisting = false) {
+        return;
+
 	    $results = [];
 
         // Sync with External Subscriber Database

@@ -81,11 +81,11 @@ class SubscribeFormField extends \CompositeField {
         return parent::dataValue();
     }
 
-    public function saveInto(DataObjectInterface $record) {
+    public function saveInto(\DataObjectInterface $record) {
         $fieldname = $this->name;
         $relation = ($fieldname && $record && $record->hasMethod($fieldname)) ? $record->$fieldname() : null;
         if($fieldname && $record && $relation &&
-           ($relation instanceof RelationList || $relation instanceof UnsavedRelationList)) {
+           ($relation instanceof \RelationList || $relation instanceof \UnsavedRelationList)) {
             $idList = array();
             if($this->value) foreach($this->value as $id => $bool) {
                 if($bool) {

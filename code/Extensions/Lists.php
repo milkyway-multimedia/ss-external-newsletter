@@ -15,6 +15,7 @@ use Milkyway\SS\ExternalNewsletter\Utilities;
 class Lists extends \DataExtension {
     private static $db = [
         'ExtId' => 'Varchar',
+        'ExtList_Driver' => 'Text',
     ];
 
     private static $indexes = [
@@ -24,19 +25,6 @@ class Lists extends \DataExtension {
     private static $has_many = [
         'Received' => 'ExtSendLog',
     ];
-
-    protected $provider = 'Milkyway\SS\ExternalNewsletter\Contracts\Lists';
-
-    public function findOrMake($filter = [], $data = [])
-    {
-        if (!($list = $this->owner->get()->filter($filter)->first())) {
-            $list = $this->owner->create(array_merge($filter, $data));
-            $list->write();
-            $list->isNew = true;
-        }
-
-        return $list;
-    }
 
     public function updateCMSFields(\FieldList $fields) {
         if($this->owner->ExtId) {

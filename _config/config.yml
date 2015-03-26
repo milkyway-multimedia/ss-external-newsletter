@@ -1,36 +1,12 @@
 ---
 Name: external-newsletter
 ---
-Injector:
-  'Milkyway\SS\ExternalNewsletter\Contracts\Config':
-    class: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\Config'
-  'Milkyway\SS\ExternalNewsletter\Contracts\Campaign':
-    class: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\Campaign'
-  'Milkyway\SS\ExternalNewsletter\Contracts\Lists':
-    class: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\Lists'
-  'Milkyway\SS\ExternalNewsletter\Contracts\Subscriber':
-    class: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\Subscriber'
-  'Milkyway\SS\ExternalNewsletter\Contracts\Template':
-    class: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\Template'
-
-  'Milkyway\SS\ExternalNewsletter\Contracts\SubscriberManager':
-    class: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\SubscriberManager'
-  'Milkyway\SS\ExternalNewsletter\Contracts\CampaignManager':
-    class: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\CampaignManager'
+ExternalNewsletter:
+  enabled:
+    - 'mailchimp'
+  drivers:
+    mailchimp: 'Milkyway\SS\ExternalNewsletter\Providers\Mailchimp\Driver'
 
 Controller:
   extensions:
     - 'Milkyway\SS\ExternalNewsletter\Extensions\Controller'
----
-Only:
-  envvarset: 'campaignmonitor_api_key'
----
-Injector:
-  'Milkyway\SS\ExternalNewsletter\Contracts\Config':
-    class: 'Milkyway\SS\ExternalNewsletter\Providers\CampaignMonitor\Config'
-  'Milkyway\SS\ExternalNewsletter\Contracts\Campaign':
-    class: 'Milkyway\SS\ExternalNewsletter\Providers\CampaignMonitor\Campaign'
-  'Milkyway\SS\ExternalNewsletter\Contracts\Lists':
-    class: 'Milkyway\SS\ExternalNewsletter\Providers\CampaignMonitor\Lists'
-  'Milkyway\SS\ExternalNewsletter\Contracts\Subscriber':
-    class: 'Milkyway\SS\ExternalNewsletter\Providers\CampaignMonitor\Subscriber'

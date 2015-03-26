@@ -26,57 +26,12 @@ class ExtList extends DataObject
 		singleton(get_called_class())->findOrMake($filter, $data);
 	}
 
-	public function getCMSFields()
-	{
-		$this->beforeExtending(
-			'updateCMSFields',
-			function ($fields) {
-				if ($this->ExtId) {
-//					$fields->addFieldsToTab(
-//						'Root.AllEmails',
-//						[
-//							FormMessageField::create(
-//								'NOTE-AllEmails',
-//								'This is a list of all emails subscribed to this mailing list from all sources',
-//								'info'
-//							)->cms(),
-//							GridField::create(
-//								'UpdatedEmails',
-//								'Emails',
-//								$this->UpdatedEmails(),
-//								$config = GridFieldConfig_RecordEditor::create(50)
-//									->removeComponentsByType('GridFieldFilterHeader')
-//									->removeComponentsByType('GridFieldDetailForm')
-//									->removeComponentsByType('GridFieldDeleteAction')
-//									->addComponents($detailForm = new ExternalDataGridFieldDetailForm())
-//									->addComponents(new ExternalDataGridFieldDeleteAction())
-//									->addComponents(new GridFieldAjaxRefresh(10000))
-//							)->setModelClass('Milkyway\SS\ExternalNewsletter\External\Subscriber')
-//						]
-//					);
-//
-//                    $self = $this;
-//
-//                    $detailForm->setItemEditFormCallback(function($form, $controller) use($self) {
-//                            $controller->record->ExtListId = $self->ExtId;
-//                        }
-//                    );
-//
-//					if($config->getComponentByType('GridFieldAddNewButton'))
-//						$config->getComponentByType('GridFieldAddNewButton')->setButtonName(_t('ExternalNewsletter.SUBSCRIBE_AN_EMAIL', 'Subscribe an email'));
-				}
-			}
-		);
-
-		return parent::getCMSFields();
-	}
-
 	public function requireDefaultRecords()
 	{
 		parent::requireDefaultRecords();
 
-        if(!Utilities::env_value('NoListSync') && !isset($_GET['forceExternalSync']))
-		    $this->sync(!isset($_GET['keepExisting']));
+//        if(!Utilities::env_value('NoListSync') && !isset($_GET['forceExternalSync']))
+//		    $this->sync(!isset($_GET['keepExisting']));
 	}
 
     /**
