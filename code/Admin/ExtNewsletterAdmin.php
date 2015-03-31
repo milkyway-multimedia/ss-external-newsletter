@@ -26,7 +26,7 @@ class ExtNewsletterAdmin extends ModelAdmin
 
 	public function alternateAccessCheck()
 	{
-		return !$this->config()->hidden && singleton('env')->get('APIKey', [$this]);
+		return !$this->config()->hidden && singleton('env')->get('APIKey', null, ['objects' => [$this]]);
 	}
 
 	public function getEditForm($id = null, $fields = null) {
